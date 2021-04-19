@@ -4,7 +4,10 @@
 
 ## Setup
 
-TBD
+必要なpythonパッケージを下記コマンドでインストールします。
+```
+$ pip3 install -r requirements.txt
+```
 
 ## Usage
 
