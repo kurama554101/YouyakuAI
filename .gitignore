@@ -3,3 +3,7 @@
 
 # ignore python cache files
 __pycache__
+
+src/dataset/*
+src/model/*
+lightning_logs/*
