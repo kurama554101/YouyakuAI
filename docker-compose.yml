@@ -1,0 +1,116 @@
+version: "2.4"
+
+services:
+  youyaku_ai_db:
+    image: youyaku_ai_db
+    build:
+      context: ./docker/db/
+      dockerfile: ./Dockerfile
+    container_name: ${DB_HOST}
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+    tty: true
+    ports:
+      - "${DB_PORT}:${DB_PORT}"
+  youyaku_ai_dashboard:
+    image: youyaku_ai_dashboard
+    build:
+      context: ./docker/dashboard
+      dockerfile: ./Dockerfile
+    container_name: youyaku_ai_dashboard
+    volumes:
+      - ./src/dashboard:/workspace/dashboard
+      - ./src/db:/workspace/db
+      - ./src/log:/workspace/log
+    environment:
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      API_HOST: ${API_HOST}
+      API_PORT: ${API_PORT}
+    tty: true
+    ports:
+      - "8501:8501"  # for streamlit or plotly dash
+    depends_on:
+      - youyaku_ai_db
+      - youyaku_ai_api_gateway
+    entrypoint: "python3 dashboard/app.py"
+  youyaku_ai_api_gateway:
+    image: youyaku_ai_api_gateway
+    build:
+      context: ./docker/api_gateway
+      dockerfile: ./Dockerfile
+    container_name: youyaku_ai_api_gateway
+    volumes:
+      - ./src/api_gateway:/workspace/api_gateway
+      - ./src/queue:/workspace/queue
+      - ./src/db:/workspace/db
+      - ./src/log:/workspace/log
+    ports:
+      - "${API_PORT}:${API_PORT}"
+    tty: true
+    environment:
+      QUEUE_HOST: ${QUEUE_HOST}
+      QUEUE_PORT: ${QUEUE_PORT}
+      QUEUE_NAME: ${QUEUE_NAME}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+    depends_on:
+      - youyaku_ai_db
+      - youyaku_ai_queue_broker
+    entrypoint: "uvicorn api_gateway.main:app --reload --host 0.0.0.0 --port ${API_PORT}"
+  youyaku_ai_summarizer:
+    image: youyaku_ai_summarizer
+    build:
+      context: ./docker/summarizer
+      dockerfile: ./Dockerfile
+    container_name: youyaku_ai_summarizer
+    volumes:
+      - ./src/queue:/workspace/queue
+      - ./src/db:/workspace/db
+      - ./src/log:/workspace/log
+      - ./src/summarizer:/workspace/summarizer
+    tty: true
+    environment:
+      QUEUE_HOST: ${QUEUE_HOST}
+      QUEUE_PORT: ${QUEUE_PORT}
+      QUEUE_NAME: ${QUEUE_NAME}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+    depends_on:
+      - youyaku_ai_db
+      - youyaku_ai_queue_broker
+    entrypoint: "python3 summarizer/summarizer_process.py"
+  youyaku_ai_queue_zookeeper:
+    image: bitnami/zookeeper:latest
+    container_name: youyaku_ai_queue_zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+  youyaku_ai_queue_broker:
+    image: 'bitnami/kafka:latest'
+    container_name: ${QUEUE_HOST}
+    ports:
+      - "${QUEUE_PORT}:${QUEUE_PORT}" # for internal container
+    environment:
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=youyaku_ai_queue_zookeeper:2181
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CLIENT:PLAINTEXT
+      - KAFKA_CFG_LISTENERS=CLIENT://:${QUEUE_PORT}
+      - KAFKA_CFG_ADVERTISED_LISTENERS=CLIENT://${QUEUE_HOST}:${QUEUE_PORT}
+      - KAFKA_INTER_BROKER_LISTENER_NAME=CLIENT
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+    depends_on:
+      - youyaku_ai_queue_zookeeper

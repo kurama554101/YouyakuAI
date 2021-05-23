@@ -1,0 +1,9 @@
+streamlit
+pandas
+sqlalchemy
+sqlalchemy_utils
+dash
+dash-bootstrap-components
+#mysqlclient
+mysql-connector-python
+watchtower

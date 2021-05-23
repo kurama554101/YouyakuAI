@@ -26,23 +26,27 @@ class T5Summarizer:
         self.__model.eval()
 
     def predict(self, inputs:list) -> list:
-        # 文字列に対する前処理の実施
-        input_ids, input_mask = self.__preprocess(inputs=inputs)
+        try:
+            # 文字列に対する前処理の実施
+            input_ids, input_mask = self.__preprocess(inputs=inputs)
 
-        # 推論処理の実施
-        outputs = self.__model.generate(
-            input_ids=input_ids, attention_mask=input_mask,
-            max_length=self.__max_target_length,
-            temperature=self.__temperature,                    # 生成にランダム性を入れる温度パラメータ
-            num_beams=self.__num_beams,                        # ビームサーチの探索幅
-            diversity_penalty=self.__diversity_penalty,        # 生成結果の多様性を生み出すためのペナルティ
-            num_beam_groups=self.__num_beam_groups,            # ビームサーチのグループ数
-            num_return_sequences=self.__num_return_sequences,  # 生成する文の数
-            repetition_penalty=self.__repetition_penalty,      # 同じ文の繰り返し（モード崩壊）へのペナルティ
-        )
+            # 推論処理の実施
+            outputs = self.__model.generate(
+                input_ids=input_ids, attention_mask=input_mask,
+                max_length=self.__max_target_length,
+                temperature=self.__temperature,                    # 生成にランダム性を入れる温度パラメータ
+                num_beams=self.__num_beams,                        # ビームサーチの探索幅
+                diversity_penalty=self.__diversity_penalty,        # 生成結果の多様性を生み出すためのペナルティ
+                num_beam_groups=self.__num_beam_groups,            # ビームサーチのグループ数
+                num_return_sequences=self.__num_return_sequences,  # 生成する文の数
+                repetition_penalty=self.__repetition_penalty,      # 同じ文の繰り返し（モード崩壊）へのペナルティ
+            )
 
-        # 後処理を行い、単語列を作成
-        return self.__postprocess(outputs=outputs)
+            # 後処理を行い、単語列を作成
+            return self.__postprocess(outputs=outputs)
+        except Exception as e:
+            # 何かしらのエラーが発生した場合は、例外を発火させる
+            raise SummarizerError("Summarize Error is occured! error detail is {}".format(e))
 
     def __preprocess(self, inputs:list) -> list:
         outputs = []
@@ -69,3 +73,7 @@ class T5Summarizer:
                                                    skip_special_tokens=True,
                                                    clean_up_tokenization_spaces=False) for ids in outputs]
         return generated_texts
+
+
+class SummarizerError(Exception):
+    pass
