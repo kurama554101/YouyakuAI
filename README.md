@@ -2,28 +2,22 @@
 
 要約を行うためのデモサービスを構築します。
 
-## Setup
+## Setup for local
 
-必要なpythonパッケージを下記コマンドでインストールします。
+### Training model
+
+TODO : dockerコンテナ経由でモデルを学習するスクリプトを追加
+
+### Create docker containers
+
+ローカル環境で動作するサービスを下記で構築します。
 ```
-$ pip3 install -r requirements.txt
+$ docker-compose up -d
 ```
+
+※TODO : api_gateway側の立ち上がりが遅い（10秒程度）ため、api_gatewayの立ち上がりをまって、ダッシュボードを利用する必要がある。
 
 ## Usage
 
-### モデルの学習処理
-
-日本語版T5モデルを下記コマンドでファインチューニングします。<br>
-現状はライブドアデータを使ったファインチューングのみです。
-
-```
-$ python3 src/create_initial_model.py
-```
-
-### ダッシュボードの起動
-
-構築したモデルを用いて、要約を試す場合はダッシュボードを起動します。
-
-```
-$ streamlit run src/dashboard.py
-```
+下記のローカルマシンのダッシュボードにアクセスして、要約処理を実行してください。
+* http://localhost:8501

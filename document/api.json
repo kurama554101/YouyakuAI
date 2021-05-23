@@ -1,0 +1,247 @@
+{
+	"openapi": "3.0.2",
+	"info": {
+		"title": "FastAPI",
+		"version": "0.1.0"
+	},
+	"paths": {
+		"/request_summarize/": {
+			"post": {
+				"summary": "Request Summarize",
+				"operationId": "request_summarize_request_summarize__post",
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/InputData"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"description": "Successful Response",
+						"content": {
+							"application/json": {
+								"schema": {}
+							}
+						}
+					},
+					"422": {
+						"description": "Validation Error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/HTTPValidationError"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/summarize_result/": {
+			"get": {
+				"summary": "Get Summarize Result",
+				"operationId": "get_summarize_result_summarize_result__get",
+				"parameters": [
+					{
+						"required": true,
+						"schema": {
+							"title": "Job Id",
+							"type": "string"
+						},
+						"name": "job_id",
+						"in": "query"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Successful Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Validation Error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/HTTPValidationError"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/set_correct_summarize_result/": {
+			"post": {
+				"summary": "Set Correct Summarize Result",
+				"operationId": "set_correct_summarize_result_set_correct_summarize_result__post",
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/CorrectInputData"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"description": "Successful Response",
+						"content": {
+							"application/json": {
+								"schema": {}
+							}
+						}
+					},
+					"422": {
+						"description": "Validation Error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/HTTPValidationError"
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	},
+	"components": {
+		"schemas": {
+			"CorrectInputData": {
+				"title": "CorrectInputData",
+				"required": [
+					"job_id",
+					"status_code",
+					"corrected_text"
+				],
+				"type": "object",
+				"properties": {
+					"job_id": {
+						"title": "Job Id",
+						"type": "string"
+					},
+					"status_code": {
+						"title": "Status Code",
+						"type": "integer"
+					},
+					"corrected_text": {
+						"title": "Corrected Text",
+						"type": "string"
+					}
+				}
+			},
+			"HTTPValidationError": {
+				"title": "HTTPValidationError",
+				"type": "object",
+				"properties": {
+					"detail": {
+						"title": "Detail",
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/ValidationError"
+						}
+					}
+				}
+			},
+			"InputData": {
+				"title": "InputData",
+				"required": [
+					"body"
+				],
+				"type": "object",
+				"properties": {
+					"body": {
+						"title": "Body",
+						"type": "string"
+					}
+				}
+			},
+			"ResponseData": {
+				"title": "ResponseData",
+				"required": [
+					"job_id",
+					"status_code",
+					"status_detail",
+					"predicted_text"
+				],
+				"type": "object",
+				"properties": {
+					"job_id": {
+						"title": "Job Id",
+						"type": "string"
+					},
+					"status_code": {
+						"$ref": "#/components/schemas/ResponseInferenceStatusCode"
+					},
+					"status_detail": {
+						"$ref": "#/components/schemas/ResponseInferenceStatusDetail"
+					},
+					"predicted_text": {
+						"title": "Predicted Text",
+						"type": "string"
+					}
+				}
+			},
+			"ResponseInferenceStatusCode": {
+				"title": "ResponseInferenceStatusCode",
+				"enum": [
+					0,
+					1,
+					2,
+					3
+				],
+				"type": "integer",
+				"description": "An enumeration."
+			},
+			"ResponseInferenceStatusDetail": {
+				"title": "ResponseInferenceStatusDetail",
+				"enum": [
+					"inference job is completed",
+					"inference job is progress now. please try to get result again after a few moments",
+					"inference job is not found. please try to request inference again",
+					"inference job is completed! but inference result is not found because of unknown error"
+				],
+				"type": "string",
+				"description": "An enumeration."
+			},
+			"ValidationError": {
+				"title": "ValidationError",
+				"required": [
+					"loc",
+					"msg",
+					"type"
+				],
+				"type": "object",
+				"properties": {
+					"loc": {
+						"title": "Location",
+						"type": "array",
+						"items": {
+							"type": "string"
+						}
+					},
+					"msg": {
+						"title": "Message",
+						"type": "string"
+					},
+					"type": {
+						"title": "Error Type",
+						"type": "string"
+					}
+				}
+			}
+		}
+	}
+}
