@@ -12,7 +12,7 @@ def create_pipeline(**kwargs):
         node(
             func=preprocess,
             inputs=["parameters"],
-            outputs=["preprocess_outputs"],
+            outputs="preprocess_outputs",
             name="preprocess"
         ),
         node(
@@ -51,6 +51,7 @@ def train(parameters:dict, preprocess_outputs:dict) -> dict:
     dataset_dir  = preprocess_outputs["dataset_dir"]
     args_dict    = create_args_from_parameters(parameters=parameters, dataset_dir=dataset_dir)
     train_params = create_train_params(parameters=parameters)
+    args_dict.update(train_params)
 
     model   = T5FineTunerWithLivedoorDataset(hparams=args_dict)
     trainer = pl.Trainer(**train_params)
@@ -65,40 +66,45 @@ def postprocess(parameters:dict, train_outputs:dict):
     pass
 
 
+# TODO : キーがtrain_paramsと重複しているので、まとめる
 def create_args_from_parameters(parameters:dict, dataset_dir:str) -> dict:
     USE_GPU = torch.cuda.is_available()
-    h_param = parameters["hyper_parameters"]
+    hyper_parameters = parameters["hyper_parameters"]
     args_dict = dict(
         data_dir=dataset_dir,  # データセットのディレクトリ
-        model_name_or_path=h_param["pretrained_model_name"],
-        tokenizer_name_or_path=h_param["pretrained_model_name"],
+        model_name_or_path=hyper_parameters["pretrained_model_name"],
+        tokenizer_name_or_path=hyper_parameters["pretrained_model_name"],
 
-        learning_rate=h_param["learning_rate"],
-        weight_decay=h_param["weight_decay"],
-        adam_epsilon=h_param["adam_epsilon"],
-        warmup_steps=h_param["warmup_steps"],
-        gradient_accumulation_steps=h_param["gradient_accumulation_steps"],
+        learning_rate=hyper_parameters["learning_rate"],
+        weight_decay=hyper_parameters["weight_decay"],
+        adam_epsilon=hyper_parameters["adam_epsilon"],
+        warmup_steps=hyper_parameters["warmup_steps"],
+        gradient_accumulation_steps=hyper_parameters["gradient_accumulation_steps"],
 
         n_gpu=1 if USE_GPU else 0,
-        early_stop_callback=h_param["early_stop_callback"],
-        fp_16=h_param["fp_16"],
-        opt_level=h_param["opt_level"],
-        max_grad_norm=h_param["max_grad_norm"],
-        seed=h_param["seed"],
+        early_stop_callback=hyper_parameters["early_stop_callback"],
+        fp_16=hyper_parameters["fp_16"],
+        opt_level=hyper_parameters["opt_level"],
+        max_grad_norm=hyper_parameters["max_grad_norm"],
+        seed=hyper_parameters["seed"],
+
+        max_input_length=hyper_parameters["max_input_length"],
+        max_target_length=hyper_parameters["max_target_length"],
+        train_batch_size=hyper_parameters["train_batch_size"],
+        eval_batch_size=hyper_parameters["eval_batch_size"],
+        num_train_epochs=hyper_parameters["num_train_epochs"]
     )
-    hparams = h_param["hparams"]
-    args_dict.update(hparams)
     return args_dict
 
 
 def create_train_params(parameters:dict) -> dict:
     USE_GPU = torch.cuda.is_available()
-    h_param = parameters["hyper_parameters"]
+    hyper_parameters = parameters["hyper_parameters"]
     return dict(
-        accumulate_grad_batches=h_param["gradient_accumulation_steps"],
+        accumulate_grad_batches=hyper_parameters["gradient_accumulation_steps"],
         gpus=1 if USE_GPU else 0,
-        max_epochs=h_param["num_train_epochs"],
-        precision= 16 if h_param["fp_16"] else 32,
-        amp_level=h_param["opt_level"],
-        gradient_clip_val=h_param["max_grad_norm"],
+        max_epochs=hyper_parameters["num_train_epochs"],
+        precision= 16 if hyper_parameters["fp_16"] else 32,
+        amp_level=hyper_parameters["opt_level"],
+        gradient_clip_val=hyper_parameters["max_grad_norm"],
     )

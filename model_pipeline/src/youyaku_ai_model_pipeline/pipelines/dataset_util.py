@@ -61,8 +61,8 @@ class LivedoorDatasetUtil:
                 for name in genre_files:
                     file = archive_file.extractfile(name)
                     title, body = self.__read_title_body(file)
-                    title = self.__normalize_text(title)
-                    body = self.__normalize_text(body)
+                    title = normalize_text(title)
+                    body = normalize_text(body)
 
                     if len(title) > 0 and len(body) > 0:
                         all_data.append({
