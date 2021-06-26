@@ -6,7 +6,7 @@ import random
 from tqdm import tqdm
 
 import sys
-sys.path.append(os.path.join("..", "..", "..", "..", "src", "summarizer"))
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "src", "summarizer"))
 from nlp_util import normalize_text
 
 class LivedoorDatasetUtil:

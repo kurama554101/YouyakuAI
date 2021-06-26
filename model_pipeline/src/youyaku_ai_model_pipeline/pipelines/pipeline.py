@@ -3,8 +3,8 @@ import os
 import torch
 import pytorch_lightning as pl
 
-from dataset_util import LivedoorDatasetUtil
-from trainer import T5FineTunerWithLivedoorDataset
+from .dataset_util import LivedoorDatasetUtil
+from .trainer import T5FineTunerWithLivedoorDataset
 
 
 def create_pipeline(**kwargs):
@@ -33,7 +33,7 @@ def create_pipeline(**kwargs):
 # TODO : ここは学習パイプラインとは別にデータ取得パイプラインを作って、対応する
 def preprocess(parameters:dict) -> dict:
     # フォルダの設定
-    dataset_dir = os.path.join(os.path.dirname(__file__), parameters["dataset"])
+    dataset_dir = os.path.join(os.path.dirname(__file__), parameters["dataset_dir"])
     os.makedirs(dataset_dir, exist_ok=True)
 
     # ライブドアデータのダウンロード処理
@@ -45,7 +45,7 @@ def preprocess(parameters:dict) -> dict:
 
 
 def train(parameters:dict, preprocess_outputs:dict) -> dict:
-    model_dir = os.path.join(os.path.dirname(__file__), parameters["model"])
+    model_dir = os.path.join(os.path.dirname(__file__), parameters["model_dir"])
     os.makedirs(model_dir, exist_ok=True)
 
     dataset_dir  = preprocess_outputs["dataset_dir"]

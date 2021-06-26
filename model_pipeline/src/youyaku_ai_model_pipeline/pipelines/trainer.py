@@ -1,5 +1,5 @@
 from abc import ABCMeta, abstractmethod
-from dataset import LivedoorDataset
+from .dataset import LivedoorDataset
 from torch.utils.data import Dataset, DataLoader
 import pytorch_lightning as pl
 from transformers import (
