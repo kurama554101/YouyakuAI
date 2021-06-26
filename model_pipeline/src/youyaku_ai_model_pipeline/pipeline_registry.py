@@ -30,6 +30,7 @@
 from typing import Dict
 
 from kedro.pipeline import Pipeline
+from youyaku_ai_model_pipeline.pipelines import pipeline
 
 
 def register_pipelines() -> Dict[str, Pipeline]:
@@ -38,4 +39,4 @@ def register_pipelines() -> Dict[str, Pipeline]:
     Returns:
         A mapping from a pipeline name to a ``Pipeline`` object.
     """
-    return {"__default__": Pipeline([])}
+    return {"__default__": pipeline.create_pipeline()}

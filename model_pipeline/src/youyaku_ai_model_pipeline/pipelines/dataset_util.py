@@ -1,11 +1,13 @@
 import tarfile
 import re
-from nlp_util import normalize_text
 import urllib.request
 import os
 import random
 from tqdm import tqdm
 
+import sys
+sys.path.append(os.path.join("..", "..", "..", "..", "src", "summarizer"))
+from nlp_util import normalize_text
 
 class LivedoorDatasetUtil:
     def __init__(self, data_folder:str, train_ratio:float=0.95, test_ratio:float=0.05, val_ratio:float=0.05) -> None:

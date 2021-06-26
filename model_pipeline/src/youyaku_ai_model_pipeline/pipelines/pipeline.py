@@ -30,9 +30,10 @@ def create_pipeline(**kwargs):
     ])
 
 
+# TODO : ここは学習パイプラインとは別にデータ取得パイプラインを作って、対応する
 def preprocess(parameters:dict) -> dict:
     # フォルダの設定
-    dataset_dir = os.path.join(os.path.dirname(__file__), "dataset")
+    dataset_dir = os.path.join(os.path.dirname(__file__), parameters["dataset"])
     os.makedirs(dataset_dir, exist_ok=True)
 
     # ライブドアデータのダウンロード処理
@@ -44,7 +45,7 @@ def preprocess(parameters:dict) -> dict:
 
 
 def train(parameters:dict, preprocess_outputs:dict) -> dict:
-    model_dir = os.path.join(os.path.dirname(__file__), "model")
+    model_dir = os.path.join(os.path.dirname(__file__), parameters["model"])
     os.makedirs(model_dir, exist_ok=True)
 
     dataset_dir  = preprocess_outputs["dataset_dir"]
@@ -66,36 +67,38 @@ def postprocess(parameters:dict, train_outputs:dict):
 
 def create_args_from_parameters(parameters:dict, dataset_dir:str) -> dict:
     USE_GPU = torch.cuda.is_available()
+    h_param = parameters["hyper_parameters"]
     args_dict = dict(
         data_dir=dataset_dir,  # データセットのディレクトリ
-        model_name_or_path=parameters["pretrained_model_name"],
-        tokenizer_name_or_path=parameters["pretrained_model_name"],
+        model_name_or_path=h_param["pretrained_model_name"],
+        tokenizer_name_or_path=h_param["pretrained_model_name"],
 
-        learning_rate=parameters["learning_rate"],
-        weight_decay=parameters["weight_decay"],
-        adam_epsilon=parameters["adam_epsilon"],
-        warmup_steps=parameters["warmup_steps"],
-        gradient_accumulation_steps=parameters["gradient_accumulation_steps"],
+        learning_rate=h_param["learning_rate"],
+        weight_decay=h_param["weight_decay"],
+        adam_epsilon=h_param["adam_epsilon"],
+        warmup_steps=h_param["warmup_steps"],
+        gradient_accumulation_steps=h_param["gradient_accumulation_steps"],
 
         n_gpu=1 if USE_GPU else 0,
-        early_stop_callback=parameters["early_stop_callback"],
-        fp_16=parameters["fp_16"],
-        opt_level=parameters["opt_level"],
-        max_grad_norm=parameters["max_grad_norm"],
-        seed=parameters["seed"],
+        early_stop_callback=h_param["early_stop_callback"],
+        fp_16=h_param["fp_16"],
+        opt_level=h_param["opt_level"],
+        max_grad_norm=h_param["max_grad_norm"],
+        seed=h_param["seed"],
     )
-    hparams = parameters["hparams"]
+    hparams = h_param["hparams"]
     args_dict.update(hparams)
     return args_dict
 
 
 def create_train_params(parameters:dict) -> dict:
-    args_dict = create_args_from_parameters(parameters=parameters)
+    USE_GPU = torch.cuda.is_available()
+    h_param = parameters["hyper_parameters"]
     return dict(
-        accumulate_grad_batches=args_dict["gradient_accumulation_steps"],
-        gpus=args_dict["n_gpu"],
-        max_epochs=args_dict["num_train_epochs"],
-        precision= 16 if args_dict["fp_16"] else 32,
-        amp_level=args_dict["opt_level"],
-        gradient_clip_val=args_dict["max_grad_norm"],
+        accumulate_grad_batches=h_param["gradient_accumulation_steps"],
+        gpus=1 if USE_GPU else 0,
+        max_epochs=h_param["num_train_epochs"],
+        precision= 16 if h_param["fp_16"] else 32,
+        amp_level=h_param["opt_level"],
+        gradient_clip_val=h_param["max_grad_norm"],
     )
