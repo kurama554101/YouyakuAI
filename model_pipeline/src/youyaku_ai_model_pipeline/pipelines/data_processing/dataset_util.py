@@ -1,3 +1,4 @@
+from itertools import count
 import tarfile
 import re
 import urllib.request
@@ -73,7 +74,32 @@ class LivedoorDatasetUtil:
                         )
             return df
 
-    def write_files_from_data(self, all_data:list, random_seed:int=1000) -> dict:
+    def split_data(self, all_data:pd.DataFrame, random_seed:int=1000) -> dict:
+        train_list = []
+        val_list = []
+        test_list = []
+        all_dara_shuffle = all_data.sample(frac=1, random_state=random_seed)
+        data_size = len(all_data)
+        total_ratio = self.__train_ratio + self.__val_ratio + self.__test_ratio
+        def get_item(row):
+            return [row["title"], row["body"], row["genre_id"]]
+
+        for i, row in all_dara_shuffle.iterrows():
+            if i < self.__train_ratio / total_ratio * data_size:
+                train_list.append(get_item(row))
+            elif i < (self.__train_ratio + self.__val_ratio) / total_ratio * data_size:
+                val_list.append(get_item(row))
+            else:
+                test_list.append(get_item(row))
+
+        columns = ["title", "body", "genre_id"]
+        return {
+            "train": pd.DataFrame(train_list, columns=columns),
+            "val": pd.DataFrame(val_list, columns=columns),
+            "test": pd.DataFrame(test_list, columns=columns)
+        }
+
+    def write_files_from_data(self, all_data:pd.DataFrame, random_seed:int=1000) -> dict:
         random.seed(random_seed)
         random.shuffle(all_data)
 
