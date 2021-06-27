@@ -2,6 +2,7 @@ dataset_dir: "dataset"
 model_dir: "model"
 hyper_parameters:
   pretrained_model_name: "sonoisa/t5-base-japanese"
+  random_seed: 1000
   learning_rate: 0.0003
   weight_decay : 0.0
   adam_epsilon : 0.00000001

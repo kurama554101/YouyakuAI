@@ -26,8 +26,8 @@ def create_pipeline(**kwargs):
 
 def get_raw_livedoor_dataset(parameters:dict) -> pd.DataFrame:
     # ライブドアデータのダウンロード処理
-    data_dir = parameters["data_dir"]
-    livedoor_dataset_util = LivedoorDatasetUtil(data_folder=data_dir)
+    dataset_dir = parameters["dataset_dir"]
+    livedoor_dataset_util = LivedoorDatasetUtil(data_folder=dataset_dir)
     df = livedoor_dataset_util.download_and_get_all_data()
 
     # dataframeを返す
@@ -35,6 +35,7 @@ def get_raw_livedoor_dataset(parameters:dict) -> pd.DataFrame:
 
 
 def split_dataset(parameters:dict, raw_dataset:pd.DataFrame) -> dict:
-    data_dir = parameters["data_dir"]
-    livedoor_dataset_util = LivedoorDatasetUtil(data_folder=data_dir)
-    return livedoor_dataset_util.split_data(all_data=raw_dataset, random_seed=1000)
+    dataset_dir = parameters["dataset_dir"]
+    random_seed = parameters["hyper_parameters"]["random_seed"]
+    livedoor_dataset_util = LivedoorDatasetUtil(data_folder=dataset_dir)
+    return livedoor_dataset_util.split_data(all_data=raw_dataset, random_seed=random_seed)
