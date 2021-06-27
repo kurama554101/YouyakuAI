@@ -8,7 +8,7 @@ from tqdm import tqdm
 import pandas as pd
 
 import sys
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "src", "summarizer"))
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..", "src", "summarizer"))
 # TODO : summarizerパッケージとの依存を無くしたいので、nlp_utilを別パッケージにして、summarizerとpipelineの方で読み込むようにする
 from nlp_util import normalize_text
 
