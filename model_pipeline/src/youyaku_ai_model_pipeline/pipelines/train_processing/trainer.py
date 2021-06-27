@@ -8,13 +8,17 @@ from transformers import (
     T5Tokenizer,
     get_linear_schedule_with_warmup
 )
+import pandas as pd
+import os
+
 
 class T5FineTuner(pl.LightningModule):
-    def __init__(self, hparams:dict):
+    def __init__(self, hparams:dict, dataset_params:dict):
         __metadata__ = ABCMeta
 
         super().__init__()
         self._hparams = hparams
+        self._dataset_params = dataset_params
 
         # 事前学習済みモデルの読み込み
         self._model = T5ForConditionalGeneration.from_pretrained(hparams["model_name_or_path"])
@@ -103,12 +107,34 @@ class T5FineTuner(pl.LightningModule):
         return [optimizer], [{"scheduler": scheduler, "interval": "step", "frequency": 1}]
 
     @abstractmethod
-    def get_dataset(self, tokenizer, type_path):
+    def get_dataset(self, file_path:str=None, data_frame:pd.DataFrame=None):
         pass
 
-    @abstractmethod
     def setup(self, stage=None):
-        pass
+        def get_dataset_path(data_dir:str, file_name:str):
+            # フォルダ名が設定されているかどうか
+            if data_dir is None:
+                return None
+
+            # datasetのファイルが存在するか
+            file_path = os.path.join(data_dir, file_name)
+            return file_path if os.path.exists(file_path) else None
+
+        """初期設定（データセットの読み込み）"""
+        if stage == 'fit' or stage is None:
+            train_file_path = get_dataset_path(data_dir=self._dataset_params["data_dir"], file_name=self._dataset_params["train_file_name"])
+            self.train_dataset = self.get_dataset(file_path=train_file_path,
+                                                  data_frame=self._dataset_params["train_dataframe"])
+
+            val_file_path = get_dataset_path(data_dir=self._dataset_params["data_dir"], file_name=self._dataset_params["val_file_name"])
+            self.val_dataset = self.get_dataset(file_path=val_file_path,
+                                                data_frame=self._dataset_params["val_dataframe"])
+
+            self.t_total = (
+                (len(train_dataset) // (self._hparams["train_batch_size"] * max(1, self._hparams["n_gpu"])))
+                // self._hparams["gradient_accumulation_steps"]
+                * float(self._hparams["num_train_epochs"])
+            )
 
     def train_dataloader(self):
         """訓練データローダーを作成する"""
@@ -122,27 +148,13 @@ class T5FineTuner(pl.LightningModule):
                           batch_size=self._hparams["eval_batch_size"],
                           num_workers=4)
 
+
 class T5FineTunerWithLivedoorDataset(T5FineTuner):
-    def get_dataset(self, type_path):
+    def get_dataset(self, file_path:str=None, data_frame:pd.DataFrame=None):
         """データセットを作成する"""
         return LivedoorDataset(
             tokenizer=self._tokenizer,
-            data_dir=self._hparams["data_dir"],
-            type_path=type_path,
+            file_path=file_path,
+            data_frame=data_frame,
             input_max_len=self._hparams["max_input_length"],
             target_max_len=self._hparams["max_target_length"])
-
-    def setup(self, stage=None):
-        """初期設定（データセットの読み込み）"""
-        if stage == 'fit' or stage is None:
-            train_dataset = self.get_dataset(type_path="train.tsv")
-            self.train_dataset = train_dataset
-
-            val_dataset = self.get_dataset(type_path="val.tsv")
-            self.val_dataset = val_dataset
-
-            self.t_total = (
-                (len(train_dataset) // (self._hparams["train_batch_size"] * max(1, self._hparams["n_gpu"])))
-                // self._hparams["gradient_accumulation_steps"]
-                * float(self._hparams["num_train_epochs"])
-            )

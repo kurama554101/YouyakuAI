@@ -1,9 +1,10 @@
 import os
+import pandas as pd
 
 from .dataset_util import LivedoorDatasetUtil
 
 
-# TODO : ここは学習パイプラインとは別にデータ取得パイプラインを作って、対応する
+# TODO : train, test, valでDFを返すように対応する
 def preprocess(parameters:dict) -> dict:
     # フォルダの設定
     dataset_dir = os.path.join(os.path.dirname(__file__), parameters["dataset_dir"])

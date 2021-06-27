@@ -6,3 +6,12 @@
 livedoor_dataset:
   type: pandas.CSVDataSet
   filepath: data/01_raw/livedoor_dataset.csv
+train_dataset:
+  type: pandas.CSVDataSet
+  filepath: data/03_primary/train.tsv
+val_dataset:
+  type: pandas.CSVDataSet
+  filepath: data/03_primary/val.tsv
+test_dataset:
+  type: pandas.CSVDataSet
+  filepath: data/03_primary/test.tsv
