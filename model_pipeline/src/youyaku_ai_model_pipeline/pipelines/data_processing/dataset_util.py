@@ -69,7 +69,7 @@ class LivedoorDatasetUtil:
                     body = normalize_text(body)
 
                     if len(title) > 0 and len(body) > 0:
-                        df.append(
+                        df = df.append(
                             pd.Series([title, body, i], index=df.columns), ignore_index=True
                         )
             return df
