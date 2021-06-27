@@ -124,14 +124,14 @@ class T5FineTuner(pl.LightningModule):
         if stage == 'fit' or stage is None:
             train_file_path = get_dataset_path(data_dir=self._dataset_params["data_dir"], file_name=self._dataset_params["train_file_name"])
             self.train_dataset = self.get_dataset(file_path=train_file_path,
-                                                  data_frame=self._dataset_params["train_dataframe"])
+                                                  data_frame=self._dataset_params["train_dataset"])
 
             val_file_path = get_dataset_path(data_dir=self._dataset_params["data_dir"], file_name=self._dataset_params["val_file_name"])
             self.val_dataset = self.get_dataset(file_path=val_file_path,
-                                                data_frame=self._dataset_params["val_dataframe"])
+                                                data_frame=self._dataset_params["val_dataset"])
 
             self.t_total = (
-                (len(train_dataset) // (self._hparams["train_batch_size"] * max(1, self._hparams["n_gpu"])))
+                (len(self.train_dataset) // (self._hparams["train_batch_size"] * max(1, self._hparams["n_gpu"])))
                 // self._hparams["gradient_accumulation_steps"]
                 * float(self._hparams["num_train_epochs"])
             )

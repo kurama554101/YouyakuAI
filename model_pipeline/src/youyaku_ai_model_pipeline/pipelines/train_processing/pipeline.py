@@ -2,6 +2,8 @@ from kedro.pipeline import Pipeline, node
 import os
 import torch
 import pytorch_lightning as pl
+from torch.utils.data import dataset
+import pandas as pd
 
 from .trainer import T5FineTunerWithLivedoorDataset
 
@@ -10,7 +12,7 @@ def create_pipeline(**kwargs):
     return Pipeline([
         node(
             func=train,
-            inputs=["parameters", "preprocess_outputs"],
+            inputs=["parameters", "train_dataset", "val_dataset", "test_dataset"],
             outputs=["train_outputs"],
             name="train"
         ),
@@ -23,16 +25,24 @@ def create_pipeline(**kwargs):
     ])
 
 
-def train(parameters:dict, preprocess_outputs:dict) -> dict:
+def train(parameters:dict, train_dataset:pd.DataFrame, val_dataset:pd.DataFrame, test_dataset:pd.DataFrame) -> dict:
+    dataset_params = dict(
+        data_dir=parameters["dataset_dir"],
+        train_file_name="train.tsv",
+        val_file_name="val.tsv",
+        test_file_name="test.tsv",
+        train_dataset=train_dataset,
+        val_dataset=val_dataset,
+        test_dataset=test_dataset
+    )
     model_dir = os.path.join(os.path.dirname(__file__), parameters["model_dir"])
     os.makedirs(model_dir, exist_ok=True)
 
-    dataset_dir  = preprocess_outputs["dataset_dir"]
-    args_dict    = create_args_from_parameters(parameters=parameters, dataset_dir=dataset_dir)
+    args_dict = create_args_from_parameters(parameters=parameters)
     train_params = create_train_params(parameters=parameters)
     args_dict.update(train_params)
 
-    model   = T5FineTunerWithLivedoorDataset(hparams=args_dict)
+    model = T5FineTunerWithLivedoorDataset(hparams=args_dict, dataset_params=dataset_params)
     trainer = pl.Trainer(**train_params)
     trainer.fit(model)
     model.save(model_dir=model_dir)
@@ -46,7 +56,7 @@ def postprocess(parameters:dict, train_outputs:dict):
 
 
 # TODO : キーがtrain_paramsと重複しているので、まとめる
-def create_args_from_parameters(parameters:dict, dataset_dir:str) -> dict:
+def create_args_from_parameters(parameters:dict, dataset_dir:str=None) -> dict:
     USE_GPU = torch.cuda.is_available()
     hyper_parameters = parameters["hyper_parameters"]
     args_dict = dict(
