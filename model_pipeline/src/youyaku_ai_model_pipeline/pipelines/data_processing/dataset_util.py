@@ -4,10 +4,13 @@ import urllib.request
 import os
 import random
 from tqdm import tqdm
+import pandas as pd
 
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "src", "summarizer"))
+# TODO : summarizerパッケージとの依存を無くしたいので、nlp_utilを別パッケージにして、summarizerとpipelineの方で読み込むようにする
 from nlp_util import normalize_text
+
 
 class LivedoorDatasetUtil:
     def __init__(self, data_folder:str, train_ratio:float=0.95, test_ratio:float=0.05, val_ratio:float=0.05) -> None:
@@ -47,9 +50,9 @@ class LivedoorDatasetUtil:
         os.remove(archive_path)
         return all_data
 
-    def get_all_data_from_archive_file(self, archive_path:str) -> list:
+    def get_all_data_from_archive_file(self, archive_path:str) -> pd.DataFrame:
         genre_files_list = [[] for genre in self.__target_genres]
-        all_data = []
+        df = pd.DataFrame(index=[], columns=["title", "body", "genre_id"])
 
         with tarfile.open(archive_path) as archive_file:
             for archive_item in archive_file:
@@ -65,12 +68,10 @@ class LivedoorDatasetUtil:
                     body = normalize_text(body)
 
                     if len(title) > 0 and len(body) > 0:
-                        all_data.append({
-                            "title": title,
-                            "body": body,
-                            "genre_id": i
-                            })
-            return all_data
+                        df.append(
+                            pd.Series([title, body, i], index=df.columns), ignore_index=True
+                        )
+            return df
 
     def write_files_from_data(self, all_data:list, random_seed:int=1000) -> dict:
         random.seed(random_seed)
