@@ -1,0 +1,6 @@
+transformers==4.5.1
+tqdm==4.60.0
+pandas
+torch
+pytorch_lightning
+sentencepiece

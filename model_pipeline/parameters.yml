@@ -1,0 +1,19 @@
+hyper_parameters:
+  pretrained_model_name: "sonoisa/t5-base-japanese"
+  random_seed: 1000
+  learning_rate: 0.0003
+  weight_decay : 0.0
+  #adam_epsilon : 0.00000001
+  adam_epsilon : 0.01
+  warmup_steps : 0
+  gradient_accumulation_steps: 1
+  early_stop_callback: False
+  fp_16: False
+  opt_level: 'O1'
+  max_grad_norm: 1.0
+  seed: 42
+  max_input_length : 512
+  max_target_length: 64
+  train_batch_size : 8
+  eval_batch_size  : 8
+  num_train_epochs : 8
