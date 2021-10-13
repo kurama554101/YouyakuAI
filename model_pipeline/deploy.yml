@@ -1,0 +1,10 @@
+common:
+  version: 0.0.1
+  pipeline_name: youyaku_ai_pipeline
+  namespace: youyakuai
+local:
+  pipeline_root: pipeline_root
+  kfp_host: http://localhost:7777
+remote:
+  docker_host_name: shotasakamomo554101
+  kfp_host: "" # TODO imp

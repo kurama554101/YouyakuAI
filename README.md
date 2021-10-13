@@ -6,7 +6,33 @@
 
 ### Training model
 
-TODO : dockerコンテナ経由でモデルを学習するスクリプトを追加
+#### Create pipeline file
+
+下記コマンドで、kubeflowで動作する学習パイプラインのファイル（yaml）を構築する
+```
+$ python3 pipeline.py
+```
+
+#### Update Docker Image
+
+学習パイプラインで用いるDocker ImageをDocker Hubにアップロードする。
+
+* model_pipeline/deploy.yamlの修正
+  * docker_host_nameを、スクリプトを実行する方のホスト名に変更する
+* Docker Imageのビルドとpush処理（下記コマンドの実行）
+
+```
+$ cd model_pipeline
+$ python3 build_all_componens.py --deploy_type docker_hub
+```
+
+#### Execute training pipeline in Local
+
+TBD
+
+#### Execute training pipeline in VertexAI
+
+TBD
 
 ### Create docker containers
 
