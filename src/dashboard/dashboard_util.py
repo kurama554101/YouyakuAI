@@ -1,7 +1,9 @@
 import sys
 import os
+
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "db"))
 from db_wrapper import DBConfig, DBFactory
+
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "log"))
 from custom_log import LoggerFactory
 
@@ -13,13 +15,15 @@ def create_db_config():
         username=os.environ.get("DB_USERNAME"),
         password=os.environ.get("DB_PASSWORD"),
         db_name=os.environ.get("DB_NAME"),
-        db_type=os.environ.get("DB_TYPE")
+        db_type=os.environ.get("DB_TYPE"),
     )
     return config
 
 
 def create_logger(logger_name):
-    return LoggerFactory.get_logger(logger_type="print", logger_name=logger_name)
+    return LoggerFactory.get_logger(
+        logger_type="print", logger_name=logger_name
+    )
 
 
 def create_db_instance(config, logger):
