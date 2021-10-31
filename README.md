@@ -41,9 +41,32 @@ TBD
 $ docker-compose up -d
 ```
 
+Docker Imageを作り直す場合は、下記コマンドでビルドも実施されます。
+```
+$ docker-compose up -d --build
+```
+
 ※TODO : api_gateway側の立ち上がりが遅い（10秒程度）ため、api_gatewayの立ち上がりをまって、ダッシュボードを利用する必要がある。
 
 ## Usage
 
 下記のローカルマシンのダッシュボードにアクセスして、要約処理を実行してください。
 * http://localhost:8501
+
+## Execute Test
+
+テストコードが存在するコンテナに入って、テストコードを実行する。<br>
+※事前にdockerコンテナを全て起動する。
+
+```
+$ docker exec -it <コンテナ名> /bin/bash
+$ python3 <テストしたいフォルダ>/test/<テストしたいファイル名>
+```
+
+## Change DB type
+
+.envファイルを修正して、利用するDBを変更することが可能。
+
+* DB_TYPE
+  * mysql
+  * bigquery

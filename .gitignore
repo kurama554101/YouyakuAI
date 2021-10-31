@@ -7,3 +7,6 @@ __pycache__
 src/dataset/*
 src/model/*
 lightning_logs/*
+
+# ignore credential files in local
+credentials/*.json

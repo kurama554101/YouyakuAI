@@ -3,7 +3,9 @@ pandas
 sqlalchemy
 sqlalchemy_utils
 dash
-dash-bootstrap-components
+dash-bootstrap-components < 1
 #mysqlclient
 mysql-connector-python
 watchtower
+google-cloud-bigquery
+more_itertools

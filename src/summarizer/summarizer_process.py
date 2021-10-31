@@ -4,6 +4,7 @@ import sys
 import os
 from datetime import datetime
 from enum import Enum
+import time
 
 from summarizer import SummarizerError, T5Summarizer
 from summarizer_util import create_db_config, create_queue_config, create_logger, create_db_instance, create_queue_instance
@@ -47,7 +48,7 @@ def main():
 
     # DBインスタンスの取得
     db_config = create_db_config()
-    db_instance = DBFactory.get_db_instance(db_config=db_config, log_instance=logger)
+    db_instance = create_db_instance(config=db_config, logger=logger)
 
     # 処理を永続的に実施
     while True:
@@ -61,6 +62,9 @@ def main():
         process_time = end_time - start_time
         logger.info("summarize process is end. process time is {}".format(process_time))
         logger.info("summarize process result is {}".format(result.get_text()))
+
+        # interval
+        time.sleep(0.5)
 
 def loop_process(summarizer:T5Summarizer,
                  queue_consumer:AbstractQueueConsumer,
@@ -106,6 +110,7 @@ def loop_process(summarizer:T5Summarizer,
         logger.error("summarize result count(= {}) is not equal to request body count(= {}). summarize result is not saved into DB.".format(len(body_infos_with_id),
                                                                                                                                     len(results)))
         return SummarizerProcessResult.error_of_summarizer
+
     ### 推論処理の結果をDBに保存
     summarize_results = []
     for (_, body_info), predicted_text in zip(body_infos_with_id.items(), results):
@@ -118,7 +123,7 @@ def loop_process(summarizer:T5Summarizer,
     for message_id, result in zip(body_infos_with_id.keys(), summarize_results):
         job_info = SummarizeJobInfo(job_id=message_id, result_id=result.id)
         job_infos.append(job_info)
-    db_instance.update_summarize_job_info(job_infos=job_infos)
+    db_instance.insert_summarize_job_info(job_infos=job_infos)
 
     return SummarizerProcessResult.complete
 
