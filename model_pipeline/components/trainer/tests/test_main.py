@@ -9,17 +9,25 @@ import shutil
 
 class TestTrainer(unittest.TestCase):
     def setUp(self) -> None:
-        contents_folder = os.path.join(os.path.dirname(__file__), "test_contents")
+        contents_folder = os.path.join(
+            os.path.dirname(__file__), "test_contents"
+        )
         output_folder = os.path.join(os.path.dirname(__file__), "output")
+
         def load_yaml(path: str) -> dict:
             with open(path, "r") as f:
                 return yaml.load(f)
-        parameters = load_yaml(os.path.join(contents_folder, "test_parameters.yml"))
-        self.args = ComponentArguments(train_data_path=os.path.join(contents_folder, "train.csv"),
-                                       val_data_path=os.path.join(contents_folder, "val.csv"),
-                                       test_data_path=os.path.join(contents_folder, "test.csv"),
-                                       suffix="_test",
-                                       parameters=parameters)
+
+        parameters = load_yaml(
+            os.path.join(contents_folder, "test_parameters.yml")
+        )
+        self.args = ComponentArguments(
+            train_data_path=os.path.join(contents_folder, "train.csv"),
+            val_data_path=os.path.join(contents_folder, "val.csv"),
+            test_data_path=os.path.join(contents_folder, "test.csv"),
+            suffix="_test",
+            parameters=parameters,
+        )
         self.out_dest = OutputDestinations(output_folder)
 
     def tearDown(self) -> None:

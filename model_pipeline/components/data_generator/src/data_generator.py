@@ -50,7 +50,9 @@ class Artifacts:
         artifacts = {}
         for key, artifact_cls in get_type_hints(cls).items():
             existed_keys = get_type_hints(artifact_cls).keys()
-            filtered_vars = {k: v for k, v in args.items() if k in existed_keys}
+            filtered_vars = {
+                k: v for k, v in args.items() if k in existed_keys
+            }
 
             artifacts[key] = artifact_cls(**filtered_vars)
         # parse args and convert into PipelineArguments
@@ -61,6 +63,7 @@ class Artifacts:
 # MAIN FUNCTION
 # ------------------------------------------------------------------------------
 
+
 def main(args: ComponentArguments) -> dict:
     dataset_dir = "dataset"
 
@@ -69,7 +72,9 @@ def main(args: ComponentArguments) -> dict:
     df = livedoor_dataset_util.download_and_get_all_data()
 
     # データをtrain, val, test用に分割
-    return livedoor_dataset_util.split_data(all_data=df, random_seed=args.random_seed)
+    return livedoor_dataset_util.split_data(
+        all_data=df, random_seed=args.random_seed
+    )
 
 
 def write_csv(result_dict: dict, output_destinations: OutputDestinations):
@@ -86,6 +91,7 @@ def write_one_csv(data: pd.DataFrame, destination: str):
     path = Path(destination)
     path.parent.mkdir(exist_ok=True, parents=True)
     data.to_csv(destination, index=False)
+
 
 #
 # ENTRY POINT

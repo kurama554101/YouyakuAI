@@ -4,15 +4,19 @@ import pandas as pd
 
 
 class LivedoorDataset(Dataset):
-    def __init__(self,
-                 tokenizer,
-                 file_path=None,
-                 data_frame:pd.DataFrame=None,
-                 input_max_len=512,
-                 target_max_len=512):
+    def __init__(
+        self,
+        tokenizer,
+        file_path=None,
+        data_frame: pd.DataFrame = None,
+        input_max_len=512,
+        target_max_len=512,
+    ):
         # file_path か data_frameは設定する必要があるため、設定していない場合は例外を発火
         if file_path is None and data_frame is None:
-            raise DatasetError("file_path and data_frame are None! please set file_path or data_frame!")
+            raise DatasetError(
+                "file_path and data_frame are None! please set file_path or data_frame!"
+            )
 
         self.file_path = file_path
         self.data_frame = data_frame
@@ -35,8 +39,12 @@ class LivedoorDataset(Dataset):
         source_mask = self.inputs[index]["attention_mask"].squeeze()
         target_mask = self.targets[index]["attention_mask"].squeeze()
 
-        return {"source_ids": source_ids, "source_mask": source_mask,
-                "target_ids": target_ids, "target_mask": target_mask}
+        return {
+            "source_ids": source_ids,
+            "source_mask": source_mask,
+            "target_ids": target_ids,
+            "target_mask": target_mask,
+        }
 
     def _build(self):
         def make_record(title, body):
@@ -49,13 +57,19 @@ class LivedoorDataset(Dataset):
             input, target = make_record(title, body)
 
             tokenized_inputs = self.tokenizer.batch_encode_plus(
-                [input], max_length=self.input_max_len, truncation=True,
-                padding="max_length", return_tensors="pt"
+                [input],
+                max_length=self.input_max_len,
+                truncation=True,
+                padding="max_length",
+                return_tensors="pt",
             )
 
             tokenized_targets = self.tokenizer.batch_encode_plus(
-                [target], max_length=self.target_max_len, truncation=True,
-                padding="max_length", return_tensors="pt"
+                [target],
+                max_length=self.target_max_len,
+                truncation=True,
+                padding="max_length",
+                return_tensors="pt",
             )
 
             self.inputs.append(tokenized_inputs)
@@ -76,11 +90,21 @@ class LivedoorDataset(Dataset):
 
                     append_item(title=title, body=body, genre_id=genre_id)
         elif self.data_frame is not None:
-            assert len(self.data_frame.columns) == 3, "data frame columns count is not 3. columns is {}".format(self.data_frame.columns)
+            assert (
+                len(self.data_frame.columns) == 3
+            ), "data frame columns count is not 3. columns is {}".format(
+                self.data_frame.columns
+            )
             for index, row in self.data_frame.iterrows():
-                append_item(title=row["title"], body=row["body"], genre_id=row["genre_id"])
+                append_item(
+                    title=row["title"],
+                    body=row["body"],
+                    genre_id=row["genre_id"],
+                )
         else:
-            raise DatasetError("file_path and data_frame are None! please set file_path or data_frame!")
+            raise DatasetError(
+                "file_path and data_frame are None! please set file_path or data_frame!"
+            )
 
 
 class WikihowDataset(Dataset):

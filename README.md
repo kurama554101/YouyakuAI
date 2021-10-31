@@ -96,3 +96,39 @@ $ python3 <テストしたいフォルダ>/test/<テストしたいファイル�
 * DB_TYPE
   * mysql
   * bigquery
+
+## Setup Delopment Environment
+
+開発環境の構築手順について記載します。
+
+### Used Development Tools
+
+* VSCode
+* Python 3.8以上
+* black
+  * formatter
+* flake8
+  * linter
+
+### Setup for vscode
+
+下記のツールをインストールします.
+
+```
+$ pip install flake8
+$ pip install black
+```
+
+vscodeのsettings.jsonに下記を追加します.
+
+```
+    "python.analysis.extraPaths": [
+        "./src/dashboard", "./src/db", "./src/log", "./src/summarizer", "./src/queue_api", "./src/api_gateway",
+        "./model_pipeline/components/data_generator/src", "./model_pipeline/components/trainer/src"
+    ],
+    "python.linting.pylintEnabled": false,
+    "python.linting.flake8Enabled": true,
+    "python.formatting.provider": "black",
+    "python.formatting.blackArgs": ["--line-length", "79"],
+    "editor.formatOnSave": true
+```
