@@ -22,7 +22,8 @@ def create_db_config():
         port=os.environ.get("DB_PORT"),
         username=os.environ.get("DB_USERNAME"),
         password=os.environ.get("DB_PASSWORD"),
-        db_name=os.environ.get("DB_NAME")
+        db_name=os.environ.get("DB_NAME"),
+        db_type=os.environ.get("DB_TYPE")
     )
     return config
 

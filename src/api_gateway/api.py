@@ -10,7 +10,7 @@ import os
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "queue"))
 from queue_client import AbstractQueueProducer
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "db"))
-from db_wrapper import AbstractDB, SummarizeJobInfo
+from db_wrapper import AbstractDB, SummarizeJobInfo, SummarizeJobLog
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "log"))
 from log import AbstractLogger
 
@@ -71,7 +71,6 @@ class ResponseData(BaseModel):
 # TODO : enumを利用して、中身を書き直し、responseとして使うようにする
 class CorrectInputData(BaseModel):
     job_id: str
-    status_code: int
     corrected_text: str
 
 
@@ -108,28 +107,29 @@ class SummarizerApi:
         id = await queue_helper.send_body_into_queue_task(loop=loop, body_text=input_data.body, producer=self.__queue_producer)
 
         # job情報をDBに登録
-        job_info = SummarizeJobInfo(job_id=uuid.UUID(id), result_id=None)
-        self.__db_instance.insert_summarize_job_info(job_infos=[job_info])
+        job_log = SummarizeJobLog(job_id=uuid.UUID(id))
+        self.__db_instance.insert_summarize_job_log(job_logs=[job_log])
         return {"message_id": id}
 
     async def __get_summarize_result(self, job_id: str):
         job_id = uuid.UUID(job_id)
-        job_info = self.__db_instance.fetch_summarize_job_info(job_id=job_id)
 
         def make_response(response_status:ResponseInferenceStatus, predicted_text:str="") -> ResponseData:
-            d = {"job_id"        : response_status.get_id(),
+            d = {"job_id"        : str(job_id),
                  "status_code"   : response_status.get_id(),
                  "status_detail" : response_status.get_detail(),
                  "predicted_text": predicted_text}
             return ResponseData(**d)
 
         # ジョブが見つからない場合
-        if job_info is None:
+        job_log = self.__db_instance.fetch_summarize_job_log_by_id(job_id=job_id)
+        if job_log is None:
             response_status = ResponseInferenceStatus.job_is_not_found
             return make_response(response_status=response_status)
 
-        # ジョブが完了していない場合
-        if job_info.result_id is None:
+        # ジョブが完了していない場合(SummarizeJobLogにレコードがあるが、SummarizeJobInfoにはレコードがない場合)
+        job_info = self.__db_instance.fetch_summarize_job_info(job_id=job_id)
+        if job_log is not None and job_info is None:
             response_status = ResponseInferenceStatus.in_progress_job
             return make_response(response_status=response_status)
 
@@ -142,12 +142,13 @@ class SummarizerApi:
         return make_response(response_status=ResponseInferenceStatus.complete_job,
                              predicted_text=result.get_predicted_text())
 
+    # TODO : updateは基本使わないようにするため、テーブル設計含めて検討し直す
     async def __set_correct_summarize_result(self, correct_data: CorrectInputData):
         job_id = uuid.UUID(correct_data.job_id)
         job_info = self.__db_instance.fetch_summarize_job_info(job_id=job_id)
 
         def make_response(response_status:ResponseSetCorrectedResult, result_detail:dict={}) -> dict:
-            return {"status_id": response_status.get_id(), "status_detail": response_status.get_detail(), "result_detail": result_detail}
+            return {"status_code": response_status.get_id(), "status_detail": response_status.get_detail(), "result_detail": result_detail}
 
         # ジョブが見つからない場合
         if job_info is None:

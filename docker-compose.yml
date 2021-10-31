@@ -25,14 +25,17 @@ services:
       - ./src/dashboard:/workspace/dashboard
       - ./src/db:/workspace/db
       - ./src/log:/workspace/log
+      - ./credentials:/workspace/credentials
     environment:
       DB_HOST: ${DB_HOST}
       DB_PORT: ${DB_PORT}
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: ${DB_NAME}
+      DB_TYPE: ${DB_TYPE}
       API_HOST: ${API_HOST}
       API_PORT: ${API_PORT}
+      GOOGLE_APPLICATION_CREDENTIALS: ${GOOGLE_SERVICE_ACCOUNT_FILE}
     tty: true
     ports:
       - "8501:8501"  # for streamlit or plotly dash
@@ -51,6 +54,7 @@ services:
       - ./src/queue:/workspace/queue
       - ./src/db:/workspace/db
       - ./src/log:/workspace/log
+      - ./credentials:/workspace/credentials
     ports:
       - "${API_PORT}:${API_PORT}"
     tty: true
@@ -63,6 +67,8 @@ services:
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: ${DB_NAME}
+      DB_TYPE: ${DB_TYPE}
+      GOOGLE_APPLICATION_CREDENTIALS: ${GOOGLE_SERVICE_ACCOUNT_FILE}
     depends_on:
       - youyaku_ai_db
       - youyaku_ai_queue_broker
@@ -78,6 +84,7 @@ services:
       - ./src/db:/workspace/db
       - ./src/log:/workspace/log
       - ./src/summarizer:/workspace/summarizer
+      - ./credentials:/workspace/credentials
     tty: true
     environment:
       QUEUE_HOST: ${QUEUE_HOST}
@@ -88,6 +95,8 @@ services:
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: ${DB_NAME}
+      DB_TYPE: ${DB_TYPE}
+      GOOGLE_APPLICATION_CREDENTIALS: ${GOOGLE_SERVICE_ACCOUNT_FILE}
     depends_on:
       - youyaku_ai_db
       - youyaku_ai_queue_broker
