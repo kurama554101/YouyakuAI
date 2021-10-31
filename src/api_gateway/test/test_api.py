@@ -9,7 +9,7 @@ import os
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from api import SummarizerApi, ResponseInferenceStatus, ResponseSetCorrectedResult
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "db"))
-from db_wrapper import AbstractDB, BodyInfo, DBConfig, InferenceStatus, SummarizeJobInfo, SummarizeResult
+from db_wrapper import AbstractDB, BodyInfo, DBConfig, InferenceStatus, SummarizeJobInfo, SummarizeJobLog, SummarizeResult
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "queue"))
 from queue_client import AbstractQueueProducer, QueueConfig
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "log"))
@@ -51,8 +51,8 @@ class TestAPI(unittest.TestCase):
             self.fail("id type don't equal UUID type. error detail is {}".format(e))
 
         ## DBにジョブが登録されていること
-        job_info = db_instance.fetch_summarize_job_info(job_id=id)
-        self.assertEqual(job_info.job_id, id)
+        job_log = db_instance.fetch_summarize_job_log_by_id(job_id=id)
+        self.assertEqual(job_log.job_id, id)
 
         ## Queueにメッセージが送られているかを検証
         queue = queue_producer._get_queue()
@@ -65,12 +65,13 @@ class TestAPI(unittest.TestCase):
         # テスト用のDBクラスの作成
         job_id = uuid.uuid4()
         result_info = SummarizeResult(body_id=1, inference_status=InferenceStatus.complete.value, predicted_text="てすとです", label_text=None)
-        result_info.id = 1
         job_info = SummarizeJobInfo(job_id=job_id, result_id=result_info.id)
+        job_log = SummarizeJobLog(job_id=job_id)
         db_instance = DBForTest(config=self.db_config,
                                 log_instance=self.logger,
                                 dummy_result_infos=[result_info],
-                                dummy_job_infos=[job_info])
+                                dummy_job_infos=[job_info],
+                                dummy_job_logs=[job_log])
 
         # テスト用のQueueクラスの作成
         queue_producer = QueueProducerForTest(config=self.queue_config, logger=self.logger)
@@ -86,21 +87,23 @@ class TestAPI(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 200)
         result = response.json()
-        self.assertEqual(result["status_id"], ResponseInferenceStatus.complete_job.get_id())
+        self.assertEqual(result["job_id"], str(job_id))
+        self.assertEqual(result["status_code"], ResponseInferenceStatus.complete_job.get_id())
         self.assertEqual(result["status_detail"], ResponseInferenceStatus.complete_job.get_detail())
-        self.assertEqual(result["result_detail"]["predicted_text"], result_info.predicted_text)
+        self.assertEqual(result["predicted_text"], result_info.predicted_text)
 
     # TODO : complete以外のステータスパターンのテスト
     def test_set_correct_summarize_result_complete(self):
         # テスト用のDBクラスの作成
         job_id = uuid.uuid4()
         result_info = SummarizeResult(body_id=1, inference_status=InferenceStatus.complete.value, predicted_text="てすとです", label_text=None)
-        result_info.id = 1
         job_info = SummarizeJobInfo(job_id=job_id, result_id=result_info.id)
+        job_log = SummarizeJobLog(job_id=job_id)
         db_instance = DBForTest(config=self.db_config,
                                 log_instance=self.logger,
                                 dummy_result_infos=[result_info],
-                                dummy_job_infos=[job_info])
+                                dummy_job_infos=[job_info],
+                                dummy_job_logs=[job_log])
 
         # テスト用のQueueクラスの作成
         queue_producer = QueueProducerForTest(config=self.queue_config, logger=self.logger)
@@ -118,7 +121,7 @@ class TestAPI(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 200)
         result = response.json()
-        self.assertEqual(result["status_id"], ResponseSetCorrectedResult.complete_job.get_id())
+        self.assertEqual(result["status_code"], ResponseSetCorrectedResult.complete_job.get_id())
         self.assertEqual(result["status_detail"], ResponseSetCorrectedResult.complete_job.get_detail())
 
         # DBにジョブ情報が正しく保存されているかを検証
@@ -142,13 +145,15 @@ class DBForTest(AbstractDB):
                  log_instance: AbstractLogger,
                  dummy_result_infos: List[SummarizeResult] = [],
                  dummy_job_infos: List[SummarizeJobInfo] = [],
-                 dummy_body_infos: List[BodyInfo] = []):
+                 dummy_body_infos: List[BodyInfo] = [],
+                 dummy_job_logs: List[SummarizeJobLog] = []):
         super().__init__(config, log_instance)
 
         # ダミーのDB作成
         self.__result_infos = dummy_result_infos
         self.__job_infos = dummy_job_infos
         self.__body_infos = dummy_body_infos
+        self.__job_logs = dummy_job_logs
 
     def create_all_tables_if_needed(self):
         pass
@@ -171,17 +176,23 @@ class DBForTest(AbstractDB):
     def insert_summarize_job_info(self, job_infos:List[SummarizeJobInfo]) -> List[int]:
         self.__job_infos.extend(job_infos)
 
+    def insert_summarize_job_log(self, job_logs: List[SummarizeJobLog]) -> List[int]:
+        self.__job_logs.extend(job_logs)
+
     def fetch_body_infos(self) -> List[BodyInfo]:
         return self.__body_infos
 
     def fetch_summarize_results(self) -> List[SummarizeResult]:
         return self.__result_infos
 
-    def fetch_summarize_result_by_id(self, result_id:int) -> SummarizeResult:
+    def fetch_summarize_result_by_id(self, result_id: uuid.UUID) -> SummarizeResult:
         return [result_info for result_info in self.__result_infos if result_info.id == result_id][0]
 
-    def fetch_summarize_job_info(self, job_id:uuid.UUID) -> SummarizeJobInfo:
+    def fetch_summarize_job_info(self, job_id: uuid.UUID) -> SummarizeJobInfo:
         return [job_info for job_info in self.__job_infos if job_info.job_id == job_id][0]
+
+    def fetch_summarize_job_log_by_id(self, job_id: uuid.UUID) -> SummarizeJobLog:
+        return [job_log for job_log in self.__job_logs if job_log.job_id == job_id][0]
 
     def update_label_text_of_result_by_id(self, result_id:int, label_text:str) -> int:
         for index, result_info in enumerate(self.__result_infos):
@@ -206,6 +217,9 @@ class QueueProducerForTest(AbstractQueueProducer):
 
     def produce(self, messages:list):
         self.__queue.extend(messages)
+
+    async def produce_task(self, loop, messages:list):
+        self.produce(messages)
 
     # for test
     def _get_queue(self) -> list:
