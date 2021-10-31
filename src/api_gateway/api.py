@@ -7,12 +7,12 @@ import asyncio
 import queue_helper
 import sys
 import os
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "queue"))
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "queue_api"))
 from queue_client import AbstractQueueProducer
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "db"))
 from db_wrapper import AbstractDB, SummarizeJobInfo, SummarizeJobLog
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "log"))
-from log import AbstractLogger
+from custom_log import AbstractLogger
 
 
 class ResponseInferenceStatusDetail(str, Enum):

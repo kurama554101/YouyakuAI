@@ -13,7 +13,7 @@ from db_wrapper import AbstractDB, BodyInfo, DBConfig, InferenceStatus, Summariz
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "queue"))
 from queue_client import AbstractQueueProducer, QueueConfig
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "log"))
-from log import AbstractLogger, LoggerFactory
+from custom_log import AbstractLogger, LoggerFactory
 
 
 class TestAPI(unittest.TestCase):

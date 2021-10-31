@@ -5,7 +5,7 @@ import os
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from db_wrapper import BodyInfo, DBConfig, DBFactory, DBUtil, SummarizeJobInfo, SummarizeJobLog, SummarizeResult
-from log import LoggerFactory
+from custom_log import LoggerFactory
 import bigquery_util
 import uuid
 

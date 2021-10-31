@@ -6,7 +6,7 @@ from kafka.errors import TopicAlreadyExistsError
 import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "log"))
-from log import AbstractLogger, LoggerFactory
+from custom_log import LoggerFactory
 
 
 def create_kafka_topics_if_needed(topics:List[str], client_id:str, config:QueueConfig):

@@ -7,7 +7,7 @@ from kafka_helper import exist_kafka_topic, create_kafka_topics_if_needed, get_k
 import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "log"))
-from log import AbstractLogger
+from custom_log import AbstractLogger
 
 
 class KafkaQueueInitializer(AbstractQueueInitializer):

@@ -2,7 +2,7 @@ import uuid
 
 import sys
 import os
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "queue"))
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "queue_api"))
 from queue_client import AbstractQueueProducer, AbstractQueueConsumer
 
 
