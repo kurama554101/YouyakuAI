@@ -38,15 +38,22 @@ TBD
 
 ローカル環境で動作するサービスを下記で構築します。
 ```
-$ docker-compose up -d
+$ make run
 ```
 
 Docker Imageを作り直す場合は、下記コマンドでビルドも実施されます。
 ```
-$ docker-compose up -d --build
+$ make run-build
 ```
 
 ※TODO : api_gateway側の立ち上がりが遅い（10秒程度）ため、api_gatewayの立ち上がりをまって、ダッシュボードを利用する必要がある。
+
+### Stop docker containers
+
+下記コマンドで停止が可能です。
+```
+$ make stop
+```
 
 ## Usage
 
@@ -54,6 +61,25 @@ $ docker-compose up -d --build
 * http://localhost:8501
 
 ## Execute Test
+
+### Execute All Test
+
+下記のコマンドでテストを実行することが可能.
+```
+make test-start
+```
+
+テストの状況は下記コマンドで確認する.
+```
+make test-print
+```
+
+テスト終了後にはコンテナを停止させるため、下記コマンドを実行する.
+```
+make test-stop
+```
+
+### Execute Each Test
 
 テストコードが存在するコンテナに入って、テストコードを実行する。<br>
 ※事前にdockerコンテナを全て起動する。

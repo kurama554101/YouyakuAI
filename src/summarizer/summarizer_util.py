@@ -1,12 +1,12 @@
 import sys
 import os
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "queue"))
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "queue_api"))
 from queue_client import QueueConfig
 from queue_factory import QueueProducerCreator
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "db"))
 from db_wrapper import DBConfig, DBFactory
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "log"))
-from log import LoggerFactory
+from custom_log import LoggerFactory
 
 
 def create_queue_config():

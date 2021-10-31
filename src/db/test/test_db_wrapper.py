@@ -6,7 +6,7 @@ import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from db_wrapper import DBFactory, DBConfig, BodyInfo, SummarizeJobInfo, SummarizeResult, InferenceStatus
-from log import LoggerFactory
+from custom_log import LoggerFactory
 
 
 class TestDBWrapper(unittest.TestCase):

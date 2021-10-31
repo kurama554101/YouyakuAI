@@ -51,7 +51,7 @@ services:
     container_name: youyaku_ai_api_gateway
     volumes:
       - ./src/api_gateway:/workspace/api_gateway
-      - ./src/queue:/workspace/queue
+      - ./src/queue_api:/workspace/queue_api
       - ./src/db:/workspace/db
       - ./src/log:/workspace/log
       - ./credentials:/workspace/credentials
@@ -80,7 +80,7 @@ services:
       dockerfile: ./Dockerfile
     container_name: youyaku_ai_summarizer
     volumes:
-      - ./src/queue:/workspace/queue
+      - ./src/queue_api:/workspace/queue_api
       - ./src/db:/workspace/db
       - ./src/log:/workspace/log
       - ./src/summarizer:/workspace/summarizer

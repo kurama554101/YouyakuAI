@@ -1,0 +1,34 @@
+version: "2.4"
+
+services:
+  youyaku_ai_tester:
+    image: youyaku_ai_tester
+    build:
+      context: ./docker/tester
+      dockerfile: ./Dockerfile
+    container_name: youyaku_ai_tester
+    volumes:
+      - ./src/api_gateway:/workspace/api_gateway
+      - ./src/queue_api:/workspace/queue_api
+      - ./src/db:/workspace/db
+      - ./src/log:/workspace/log
+      - ./src/summarizer:/workspace/summarizer
+      - ./src/dashboard:/workspace/dashboard
+      - ./credentials:/workspace/credentials
+    tty: true
+    environment:
+      QUEUE_HOST: ${QUEUE_HOST}
+      QUEUE_PORT: ${QUEUE_PORT}
+      QUEUE_NAME: ${QUEUE_NAME}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      DB_TYPE: ${DB_TYPE}
+      GOOGLE_APPLICATION_CREDENTIALS: ${GOOGLE_SERVICE_ACCOUNT_FILE}
+    depends_on:
+      - youyaku_ai_api_gateway
+      - youyaku_ai_dashboard
+      - youyaku_ai_summarizer
+    entrypoint: "bash run_test.sh"

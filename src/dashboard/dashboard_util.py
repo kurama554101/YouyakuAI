@@ -3,7 +3,7 @@ import os
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "db"))
 from db_wrapper import DBConfig, DBFactory
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "log"))
-from log import LoggerFactory
+from custom_log import LoggerFactory
 
 
 def create_db_config():

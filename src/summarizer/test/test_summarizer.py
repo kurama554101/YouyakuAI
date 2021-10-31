@@ -7,14 +7,14 @@ import sys
 import os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-from summarizer import T5Summarizer
+from summarizer_model import T5Summarizer
 from summarizer_process import SummarizerProcessResult, loop_process
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "db"))
 from db_wrapper import AbstractDB, BodyInfo, DBConfig, SummarizeJobInfo, SummarizeResult
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "queue"))
 from queue_client import AbstractQueueConsumer, QueueConfig
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "log"))
-from log import AbstractLogger, LoggerFactory
+from custom_log import AbstractLogger, LoggerFactory
 
 
 

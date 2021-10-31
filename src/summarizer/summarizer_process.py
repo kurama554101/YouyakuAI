@@ -6,11 +6,11 @@ from datetime import datetime
 from enum import Enum
 import time
 
-from summarizer import SummarizerError, T5Summarizer
+from summarizer_model import SummarizerError, T5Summarizer
 from summarizer_util import create_db_config, create_queue_config, create_logger, create_db_instance, create_queue_instance
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "log"))
-from log import AbstractLogger, LoggerFactory
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "queue"))
+from custom_log import AbstractLogger
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "queue_api"))
 from queue_client import AbstractQueueConsumer, QueueConfig, QueueError
 from queue_factory import QueueConsumerCreator
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "db"))
