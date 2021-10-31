@@ -17,11 +17,12 @@ class TestDBWrapper(unittest.TestCase):
             port=os.environ.get("DB_PORT"),
             username=os.environ.get("DB_USERNAME"),
             password=os.environ.get("DB_PASSWORD"),
-            db_name="test_summarizer_db"
+            db_name="test_summarizer_db",
             #db_name=os.environ.get("DB_NAME")
+            db_type="mysql"
         )
         log_instance = LoggerFactory.get_logger(logger_type="print", logger_name="test_db_wrapper")
-        cls.db_instance = DBFactory.get_db_instance(db_config=cls.config, log_instance=log_instance, db_type="mysql")
+        cls.db_instance = DBFactory.get_db_instance(db_config=cls.config, log_instance=log_instance)
         cls.db_instance.create_all_tables_if_needed()
 
     @classmethod
@@ -99,10 +100,10 @@ class TestDBWrapper(unittest.TestCase):
 
     def test_fetch_summarize_job_info(self):
         # SummarizeJobInfoの追加処理
-        expected_job_info = SummarizeJobInfo(job_id=uuid.uuid4(), result_id=1)
+        expected_job_info = SummarizeJobInfo(job_id=uuid.uuid4(), result_id=uuid.uuid4())
         job_infos = [
             expected_job_info,
-            SummarizeJobInfo(job_id=uuid.uuid4(), result_id=2)
+            SummarizeJobInfo(job_id=uuid.uuid4(), result_id=uuid.uuid4())
         ]
         ids = self.db_instance.insert_summarize_job_info(job_infos=job_infos)
 
