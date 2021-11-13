@@ -1,0 +1,3 @@
+# ignore output files of training model pipeline
+pipeline_output
+youyaku-ai-pipeline.json
