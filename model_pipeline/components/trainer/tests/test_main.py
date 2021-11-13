@@ -14,9 +14,10 @@ class TestTrainer(unittest.TestCase):
         )
         output_folder = os.path.join(os.path.dirname(__file__), "output")
 
-        def load_yaml(path: str) -> dict:
+        def load_yaml(path: str) -> str:
             with open(path, "r") as f:
-                return yaml.load(f)
+                d = yaml.load(f)
+                return yaml.dump(d)
 
         parameters = load_yaml(
             os.path.join(contents_folder, "test_parameters.yml")

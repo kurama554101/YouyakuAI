@@ -1,10 +1,22 @@
 common:
   version: 0.0.1
   pipeline_name: youyaku_ai_pipeline
-  namespace: youyakuai
-local:
-  pipeline_root: pipeline_root
-  kfp_host: http://localhost:7777
-remote:
-  docker_host_name: shotasakamomo554101
-  kfp_host: "" # TODO imp
+docker:
+  docker_hub:
+    docker_host_name: "" # need to modify this values to fit your environment.
+  gcr:
+    project_id: "" # need to modify this values to fit your environment.
+    docker_host_name: us.gcr.io/youyaku-ai # need to modify this values to fit your environment.
+  ecr:
+    docker_host_name: "" # TODO imp
+pipeline:
+  local:
+    namespace: youyakuai
+    pipeline_root: pipeline_root
+    kfp_host: http://localhost:7777
+  gcp:
+    project_id: "" # need to modify this values to fit your environment.
+    region: us-central1 # need to modify this values to fit your environment.
+    service_account_prefix: youyaku-ai-account # need to modify this values to fit your environment.
+  aws:
+    pipeline_root: "" # TODO imp
