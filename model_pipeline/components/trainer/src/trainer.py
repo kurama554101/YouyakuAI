@@ -12,8 +12,6 @@ from trainer_component import T5FineTunerWithLivedoorDataset
 #
 # COMPONENT ARGUMENTS
 # ------------------------------------------------------------------------------
-
-
 @dataclass
 class ComponentArguments:
     """Argument of the component. Note: Data Generator has no inputs."""
@@ -67,13 +65,11 @@ class Artifacts:
 #
 # MAIN FUNCTION
 # ------------------------------------------------------------------------------
-
-
 def main(args: ComponentArguments):
     parameters = yaml.load(args.parameters)
-    train_dataset = pd.read_csv(args.train_data_path, index_col=0)
-    val_dataset = pd.read_csv(args.val_data_path, index_col=0)
-    test_dataset = pd.read_csv(args.test_data_path, index_col=0)
+    train_dataset = pd.read_csv(args.train_data_path)
+    val_dataset = pd.read_csv(args.val_data_path)
+    test_dataset = pd.read_csv(args.test_data_path)
 
     # 学習処理
     model = train(
@@ -148,6 +144,7 @@ def create_args_from_parameters(
 
 def create_train_params(parameters: dict) -> dict:
     USE_GPU = torch.cuda.is_available()
+    print("use_gpu is {}".format(USE_GPU))
     hyper_parameters = parameters["hyper_parameters"]
     return dict(
         accumulate_grad_batches=hyper_parameters[
@@ -156,6 +153,7 @@ def create_train_params(parameters: dict) -> dict:
         gpus=1 if USE_GPU else 0,
         max_epochs=hyper_parameters["num_train_epochs"],
         precision=16 if hyper_parameters["fp_16"] else 32,
+        amp_backend=hyper_parameters["amp_backend"],
         amp_level=hyper_parameters["opt_level"],
         gradient_clip_val=hyper_parameters["max_grad_norm"],
     )
@@ -164,12 +162,10 @@ def create_train_params(parameters: dict) -> dict:
 #
 # ENTRY POINT
 # ------------------------------------------------------------------------------
-
 if __name__ == "__main__":
+    print("---- train start -----")
     artifacts = Artifacts.from_args()
     model = main(artifacts.component_arguments)
 
     # モデルの保存処理
-    model.save(
-        model=model, model_dir=artifacts.output_destinations.trained_model_dir
-    )
+    model.save(model_dir=artifacts.output_destinations.trained_model_dir)
