@@ -27,7 +27,7 @@ class ComponentArguments:
 class OutputDestinations:
     """Outputs of the component."""
 
-    trained_model_dir: str
+    trained_model: str
 
 
 @dataclass
@@ -70,6 +70,7 @@ def main(args: ComponentArguments):
     train_dataset = pd.read_csv(args.train_data_path)
     val_dataset = pd.read_csv(args.val_data_path)
     test_dataset = pd.read_csv(args.test_data_path)
+    print(f"train parameters are {parameters}")
 
     # 学習処理
     model = train(
@@ -81,11 +82,10 @@ def main(args: ComponentArguments):
     return model
 
 
-def save_model(
-    model: T5FineTunerWithLivedoorDataset, out_dest: OutputDestinations
-):
-    os.makedirs(out_dest.trained_model_dir)
-    model.save(model_dir=out_dest.trained_model_dir)
+def save_model(model: T5FineTunerWithLivedoorDataset, model_dir: str):
+    print(f"saving model folder is {model_dir}")
+    os.makedirs(model_dir, exist_ok=True)
+    model.save(model_dir=model_dir)
 
 
 def train(
@@ -168,4 +168,6 @@ if __name__ == "__main__":
     model = main(artifacts.component_arguments)
 
     # モデルの保存処理
-    model.save(model_dir=artifacts.output_destinations.trained_model_dir)
+    save_model(model, artifacts.output_destinations.trained_model)
+    print(f"model output path {artifacts.output_destinations.trained_model}")
+    print("---- train end -----")

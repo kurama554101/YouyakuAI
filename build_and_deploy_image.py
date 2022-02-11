@@ -1,16 +1,15 @@
 import yaml
+import argparse
 import subprocess
 import os
-import argparse
 from pathlib import Path
 from enum import Enum
+from dotenv import load_dotenv
 
 
 class DockerType(Enum):
     LOCAL = "local"
-    DOCKER_HUB = "docker_hub"
     GCR = "gcr"
-    ECR = "ecr"
 
     @classmethod
     def value_of(cls, docker_type_str: str):
@@ -22,19 +21,37 @@ class DockerType(Enum):
         )
 
 
-def main(docker_type: DockerType):
-    component_list = ["data_generator", "trainer"]
-    base_dir = os.path.dirname(__file__)
-    for name in component_list:
+def main(args):
+    load_dotenv()
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    components = ["summarizer"]
+    docker_type = DockerType.value_of(args.docker_type)
+    rebuild = args.rebuild
+    for component in components:
+        if component == "summarizer":
+            # summarizerはport指定が必要
+            extra_args = "--build-arg {}={}".format(
+                "PORT", os.environ.get("SUMMARIZER_INTERNAL_API_LOCAL_PORT")
+            )
         build_and_deploy_image(
-            base_dir=base_dir, name=name, docker_type=docker_type
+            base_dir=base_dir,
+            name=component,
+            docker_type=docker_type,
+            extra_args=extra_args,
+            is_rebuild=rebuild,
         )
 
 
-def build_and_deploy_image(base_dir: str, name: str, docker_type: DockerType):
+def build_and_deploy_image(
+    base_dir: str,
+    name: str,
+    docker_type: DockerType,
+    is_rebuild: bool = False,
+    extra_args: str = None,
+):
     # docker imageの作成
-    component_dir = os.path.join(base_dir, "components", name)
-    yaml_path = os.path.join(base_dir, "components", name, "deploy.yml")
+    component_dir = os.path.join(base_dir, "docker", name)
+    yaml_path = os.path.join(component_dir, "deploy.yml")
     version = get_version(yaml_path)
     name_converted = name.replace("_", "-")
     use_gpu = get_use_gpu(yaml_path)
@@ -43,9 +60,19 @@ def build_and_deploy_image(base_dir: str, name: str, docker_type: DockerType):
     base_image_name = "{}:v{}".format(name_converted, version)
     docker_file_name = "Dockerfile-gpu" if use_gpu else "Dockerfile"
     docker_file_path = os.path.join(component_dir, docker_file_name)
-    command = "docker build --target production -f {} -t {} {}".format(
-        docker_file_path, base_image_name, component_dir
+    docker_target = "local"
+    if docker_type != DockerType.LOCAL:
+        docker_target = "production"
+    # ソースコードのコピーが必要なため, Docker buildの実行場所はリポジトリルートである必要がある
+    command = "docker build"
+    if extra_args is not None:
+        command = f"{command} {extra_args}"
+    if is_rebuild:
+        command = f"{command} --no-cache"
+    command = "{} --target {} -f {} -t {} {}".format(
+        command, docker_target, docker_file_path, base_image_name, base_dir,
     )
+    print(command)
     subprocess.call(command, shell=True)
 
     # ローカルの場合は処理を終了
@@ -53,9 +80,7 @@ def build_and_deploy_image(base_dir: str, name: str, docker_type: DockerType):
         return
 
     # リモートにpushするために、tagを設定
-    docker_host_name = get_docker_host_name(
-        yaml_path=os.path.join(base_dir, "deploy.yml"), docker_type=docker_type
-    )
+    docker_host_name = get_docker_host_name(docker_type=docker_type)
     remote_image_name = "{}/{}:v{}".format(
         docker_host_name, name_converted, version
     )
@@ -67,13 +92,15 @@ def build_and_deploy_image(base_dir: str, name: str, docker_type: DockerType):
     subprocess.call(command, shell=True)
 
 
-def get_docker_host_name(yaml_path: str, docker_type: DockerType) -> str:
-    if docker_type == DockerType.LOCAL:
-        return None
-
-    d = load_yaml(yaml_path)
-    v = d["docker"][docker_type.value]["docker_host_name"]
-    return v
+def get_docker_host_name(docker_type: DockerType) -> str:
+    if docker_type == DockerType.GCR:
+        project_id = os.environ.get("GOOGLE_PROJECT_ID")
+        region = os.environ.get("GOOGLE_LOCATION")
+        return f"{region}/{project_id}"
+    else:
+        raise NotImplementedError(
+            f"{docker_type} is not implemented for docker host name."
+        )
 
 
 def load_yaml(yaml_path: str) -> dict:
@@ -88,8 +115,9 @@ def get_args():
         "--docker_type",
         default="local",
         help="docker type is decision of saving place for docker image. \
-              value type is 'local', 'docker_hub', 'gcr', 'ecr'.",
+              value type is 'local', 'gcr'.",
     )
+    parser.add_argument("--rebuild", action="store_true")
     return parser.parse_args()
 
 
@@ -107,5 +135,4 @@ def get_use_gpu(yaml_path: str) -> bool:
 
 if __name__ == "__main__":
     args = get_args()
-    docker_type = DockerType.value_of(args.docker_type)
-    main(docker_type=docker_type)
+    main(args)

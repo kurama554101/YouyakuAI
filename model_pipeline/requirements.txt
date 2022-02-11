@@ -1,1 +1,2 @@
 kfp
+google-cloud-pipeline-components

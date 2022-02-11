@@ -7,8 +7,8 @@ import sys
 import os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-from summarizer_model import T5Summarizer
 from summarizer_process import SummarizerProcessResult, loop_process
+from internal_api_client import PredictionApiClientFactory
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "db"))
 from db_wrapper import (
@@ -58,6 +58,8 @@ class TestSuammarizer(unittest.TestCase):
         return super().tearDown()
 
     def test_summarize_loop_process(self):
+        print("test_summarizer_loop_process")
+
         # テスト用のデータを作成
         job_id = uuid.uuid4()
         body = "これはテストの本文データです。試しに要約してみてね。"
@@ -69,19 +71,23 @@ class TestSuammarizer(unittest.TestCase):
         self.db_instance.insert_summarize_job_info(job_infos=[job_info])
         self.queue._add_data(messages=[message])
 
-        # Summarizerインスタンスの作成
-        hparams = {
-            "max_input_length": 512,
-            "max_target_length": 64,
-            "model_dir": os.path.join(
-                os.path.dirname(__file__), "..", "model"
-            ),
-        }
-        summarizer_instance = T5Summarizer(hparams=hparams)
+        # Summarizer API Clientの作成
+        api_type = os.environ.get("SUMMARIZER_INTERNAL_API_TYPE", "local")
+        params = dict(
+            local_host="",
+            local_port="",
+            local_request_name="predict",
+            gcp_project_id="",
+            gcp_location="",
+            gcp_endpoint="",
+        )
+        api_client = PredictionApiClientFactory.get_client(
+            client_type=api_type, params=params
+        )
 
         # ループ処理の実施
         process_result = loop_process(
-            summarizer=summarizer_instance,
+            api_client=api_client,
             queue_consumer=self.queue,
             db_instance=self.db_instance,
             logger=self.logger,

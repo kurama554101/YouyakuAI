@@ -16,4 +16,4 @@ hyper_parameters:
   max_target_length: 64
   train_batch_size: 8
   eval_batch_size: 8
-  num_train_epochs: 8
+  num_train_epochs: 1 # 8

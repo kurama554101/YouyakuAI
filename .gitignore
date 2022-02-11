@@ -4,8 +4,8 @@
 # ignore python cache files
 __pycache__
 
-src/dataset/*
-src/model/*
+dataset/*
+model/*
 lightning_logs/*
 
 # ignore credential files in local

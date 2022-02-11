@@ -1,0 +1,11 @@
+name: sample_op
+inputs:
+  - { name: sample_data, type: LocalPath }
+outputs:
+  - { name: output_data, type: LocalPath }
+implementation:
+  container:
+    image: "python:3.7"
+    args:
+      - { inputPath: sample_data }
+      - { outputPath: output_data }

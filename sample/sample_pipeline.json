@@ -1,0 +1,138 @@
+{
+  "pipelineSpec": {
+    "components": {
+      "comp-create-text": {
+        "executorLabel": "exec-create-text",
+        "inputDefinitions": {
+          "parameters": {
+            "text": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "parameters": {
+            "Output": {
+              "type": "STRING"
+            },
+            "output_file_path": {
+              "type": "STRING"
+            }
+          }
+        }
+      },
+      "comp-print-text-in-file": {
+        "executorLabel": "exec-print-text-in-file",
+        "inputDefinitions": {
+          "parameters": {
+            "input_path": {
+              "type": "STRING"
+            }
+          }
+        }
+      }
+    },
+    "deploymentSpec": {
+      "executors": {
+        "exec-create-text": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "create_text"
+            ],
+            "command": [
+              "sh",
+              "-c",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.10' && \"$0\" \"$@\"\n",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef create_text(text: str, output_file_path: OutputPath(str)) -> str:\n    print(f\"text is {text}\")\n    print(f\"output_path is {output_file_path}\")\n    with open(output_file_path, \"w\") as f:\n        f.write(text)\n    return output_file_path\n\n"
+            ],
+            "image": "python:3.7"
+          }
+        },
+        "exec-print-text-in-file": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "print_text_in_file"
+            ],
+            "command": [
+              "sh",
+              "-c",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.10' && \"$0\" \"$@\"\n",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef print_text_in_file(input_path: str):\n    with open(input_path, \"r\") as f:\n        txt = f.read()\n        print(txt)\n\n"
+            ],
+            "image": "python:3.7"
+          }
+        }
+      }
+    },
+    "pipelineInfo": {
+      "name": "add-sample"
+    },
+    "root": {
+      "dag": {
+        "tasks": {
+          "create-text": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-create-text"
+            },
+            "inputs": {
+              "parameters": {
+                "text": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "stringValue": "test_hoge"
+                    }
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "create-text"
+            }
+          },
+          "print-text-in-file": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-print-text-in-file"
+            },
+            "dependentTasks": [
+              "create-text"
+            ],
+            "inputs": {
+              "parameters": {
+                "input_path": {
+                  "taskOutputParameter": {
+                    "outputParameterKey": "Output",
+                    "producerTask": "create-text"
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "print-text-in-file"
+            }
+          }
+        }
+      }
+    },
+    "schemaVersion": "2.0.0",
+    "sdkVersion": "kfp-1.8.10"
+  },
+  "runtimeConfig": {}
+}
