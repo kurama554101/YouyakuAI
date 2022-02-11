@@ -25,6 +25,6 @@ pipeline:
     serving_min_replicas: 1
     serving_max_replicas: 1
     deploy_traffic_percentage: 100
-    enable_caching: False
+    enable_caching: True
   aws:
     pipeline_root: "" # TODO imp
