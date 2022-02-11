@@ -81,12 +81,15 @@ class SummarizerServing:
             parameters: Optional[Parameters] = None,
         ):
             print("---- start prediction ----")
+            print(f"request data is {instances}")
 
             # 要約処理の実施
             input_texts = []
             for instance in instances:
                 input_texts.append(instance.input_text)
             predicted_texts = self.summarizer.predict(inputs=input_texts)
+
+            print(f"predicted texts is {predicted_texts}")
 
             # 処理結果を返す
             prediction_list = []
