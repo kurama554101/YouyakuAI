@@ -80,6 +80,8 @@ class SummarizerServing:
             instances: List[InputFeature],
             parameters: Optional[Parameters] = None,
         ):
+            print("---- start prediction ----")
+
             # 要約処理の実施
             input_texts = []
             for instance in instances:
@@ -93,21 +95,13 @@ class SummarizerServing:
                 prediction_list.append(
                     Prediction(predicted_text=predicted_text[0])
                 )
+
+            print(f"prediction result is {prediction_list}")
             return Predictions(predictions=prediction_list)
 
         return app
 
     def __get_model_dir(self) -> str:
-        # productionの場合は、VertexAIのAIP_STORAGE_URIから取得
-        # localの場合は、ローカルのモデルパスを参照
-        # build_mode = os.environ.get("BUILD_MODE", "local")
-        # local_model_path = os.path.join(os.path.dirname(__file__), "model")
-        # if build_mode == "production":
-        #    model_path = os.environ.get("AIP_STORAGE_URI", local_model_path)
-        #    model_path = model_path.replace("gs://", "/gcs/")
-        # else:
-        #    model_path = local_model_path
-        # return model_path
         local_model_path = os.path.join(os.path.dirname(__file__), "model")
         return local_model_path
 
