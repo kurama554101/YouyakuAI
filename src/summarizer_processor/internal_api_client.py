@@ -84,8 +84,6 @@ class VertexAIPredictionApiClient(AbstractPredictionApiClient):
             input_texts.append({"input_text": body_text})
         predictions = self.__endpoint.predict(instances=input_texts)
 
-        # TODO : predictionsに後処理が必要かも
-
         # レスポンスのパース処理
         predicted_texts = []
         for data in predictions["predictions"]:

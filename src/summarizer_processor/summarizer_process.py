@@ -73,9 +73,9 @@ def main():
         local_host=os.environ.get("SUMMARIZER_INTERNAL_API_LOCAL_HOST"),
         local_port=os.environ.get("SUMMARIZER_INTERNAL_API_LOCAL_PORT"),
         local_request_name="predict",
-        gcp_project_id="",  # TODO : setup gcp project_id
-        gcp_location="",  # TODO : setup gcp region
-        gcp_endpoint="",  # TODO : setup gcp endpoint id
+        gcp_project_id=os.environ.get("GOOGLE_PROJECT_ID"),
+        gcp_location=os.environ.get("GOOGLE_PREDICTION_LOCATION"),
+        gcp_endpoint=os.environ.get("GOOGLE_PREDICTION_ENDPOINT"),
     )
     api_client = PredictionApiClientFactory.get_client(
         client_type=api_type, params=params
@@ -124,7 +124,7 @@ def loop_process(
             "summarize request is not found. summarize process is not called."
         )
         return SummarizerProcessResult.queue_is_empty
-    ## 本文情報をDBに追加
+    # 本文情報をDBに追加
     body_infos_with_id = {}
     for message in messages:
         # 本文情報の取得
@@ -139,8 +139,8 @@ def loop_process(
         body_infos_with_id[id] = body_info
     db_instance.insert_body_infos(body_infos=list(body_infos_with_id.values()))
 
-    ## 推論処理の実施とDBに結果登録
-    ### 推論処理の実施
+    # 推論処理の実施とDBに結果登録
+    # 推論処理の実施
     try:
         input_texts = []
         for body_info in body_infos_with_id.values():
@@ -158,7 +158,7 @@ def loop_process(
         )
         return SummarizerProcessResult.error_of_summarizer
 
-    ### 推論処理の結果をDBに保存
+    # 推論処理の結果をDBに保存
     summarize_results = []
     for (_, body_info), predicted_text in zip(
         body_infos_with_id.items(), results
@@ -172,7 +172,7 @@ def loop_process(
         summarize_results.append(summarize_result)
     db_instance.insert_summarize_results(result_infos=summarize_results)
 
-    ### DBの推論ジョブのステータスを更新
+    # DBの推論ジョブのステータスを更新
     job_infos = []
     for message_id, result in zip(
         body_infos_with_id.keys(), summarize_results
