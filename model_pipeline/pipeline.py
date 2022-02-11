@@ -369,7 +369,7 @@ class PipelineWithVertexAI(DefaultPipeline):
                 project=project,
                 location=region,
                 traffic_percentage=deploy_traffic_percentage,
-            )
+            ).set_caching_options(True)
 
             _ = self.debug_endpoint_name_op(endpoint_name=deploy_op.output)
 
