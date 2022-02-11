@@ -5,7 +5,7 @@ docker:
   docker_hub:
     docker_host_name: "" # need to modify this values to fit your environment.
   gcr:
-    project_id: "" # need to modify this values to fit your environment.
+    project_id: youyaku-ai # need to modify this values to fit your environment.
     docker_host_name: us.gcr.io/youyaku-ai # need to modify this values to fit your environment.
   ecr:
     docker_host_name: "" # TODO imp
@@ -15,8 +15,16 @@ pipeline:
     pipeline_root: pipeline_root
     kfp_host: http://localhost:7777
   gcp:
-    project_id: "" # need to modify this values to fit your environment.
-    region: us-central1 # need to modify this values to fit your environment.
-    service_account_prefix: youyaku-ai-account # need to modify this values to fit your environment.
+    # need to modify the following values to fit your environment.
+    project_id: youyaku-ai
+    region: us-central1
+    service_account_prefix: youyaku-ai-account
+    serving_docker_image_uri: us.gcr.io/youyaku-ai/summarizer:v0.0.1
+    serving_container_port: 8001
+    serving_machine_type: "n1-standard-16"
+    serving_min_replicas: 1
+    serving_max_replicas: 1
+    deploy_traffic_percentage: 100
+    enable_caching: True
   aws:
     pipeline_root: "" # TODO imp

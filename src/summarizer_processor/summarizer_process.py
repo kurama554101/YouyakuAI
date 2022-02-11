@@ -4,27 +4,28 @@ from datetime import datetime
 from enum import Enum
 import time
 
-from summarizer_model import SummarizerError, T5Summarizer
 from summarizer_util import (
     create_db_config,
     create_queue_config,
     create_logger,
     create_db_instance,
-    create_queue_instance,
+)
+from internal_api_client import (
+    PredictionApiClientFactory,
+    ApiClientError,
+    AbstractPredictionApiClient,
 )
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "log"))
 from custom_log import AbstractLogger
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "queue_api"))
-from queue_client import AbstractQueueConsumer, QueueConfig, QueueError
+from queue_client import AbstractQueueConsumer, QueueError
 from queue_factory import QueueConsumerCreator
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "db"))
 from db_wrapper import (
     BodyInfo,
-    DBFactory,
-    DBConfig,
     AbstractDB,
     InferenceStatus,
     SummarizeJobInfo,
@@ -62,17 +63,23 @@ def main():
         consumer_type="kafka", config=queue_config, logger=logger
     )
 
-    # 要約処理を行うインスタンスの取得
-    hparams = {
-        "max_input_length": 512,
-        "max_target_length": 64,
-        "model_dir": os.path.join(os.path.dirname(__file__), "model"),
-    }
-    summarizer = T5Summarizer(hparams=hparams)
-
     # DBインスタンスの取得
     db_config = create_db_config()
     db_instance = create_db_instance(config=db_config, logger=logger)
+
+    # Summarizer Internl Api Clientの取得
+    api_type = os.environ.get("SUMMARIZER_INTERNAL_API_TYPE", "local")
+    params = dict(
+        local_host=os.environ.get("SUMMARIZER_INTERNAL_API_LOCAL_HOST"),
+        local_port=os.environ.get("SUMMARIZER_INTERNAL_API_LOCAL_PORT"),
+        local_request_name="predict",
+        gcp_project_id=os.environ.get("GOOGLE_PROJECT_ID"),
+        gcp_location=os.environ.get("GOOGLE_PREDICTION_LOCATION"),
+        gcp_endpoint=os.environ.get("GOOGLE_PREDICTION_ENDPOINT"),
+    )
+    api_client = PredictionApiClientFactory.get_client(
+        client_type=api_type, params=params
+    )
 
     # 処理を永続的に実施
     while True:
@@ -81,9 +88,9 @@ def main():
             "summarize process is started. time is {}".format(start_time)
         )
         result = loop_process(
-            summarizer=summarizer,
             queue_consumer=queue_consumer,
             db_instance=db_instance,
+            api_client=api_client,
             logger=logger,
         )
         end_time = datetime.now()
@@ -98,9 +105,9 @@ def main():
 
 
 def loop_process(
-    summarizer: T5Summarizer,
     queue_consumer: AbstractQueueConsumer,
     db_instance: AbstractDB,
+    api_client: AbstractPredictionApiClient,
     logger: AbstractLogger,
 ):
 
@@ -117,7 +124,7 @@ def loop_process(
             "summarize request is not found. summarize process is not called."
         )
         return SummarizerProcessResult.queue_is_empty
-    ## 本文情報をDBに追加
+    # 本文情報をDBに追加
     body_infos_with_id = {}
     for message in messages:
         # 本文情報の取得
@@ -132,17 +139,15 @@ def loop_process(
         body_infos_with_id[id] = body_info
     db_instance.insert_body_infos(body_infos=list(body_infos_with_id.values()))
 
-    ## 推論処理の実施とDBに結果登録
-    ### 推論処理の実施
+    # 推論処理の実施とDBに結果登録
+    # 推論処理の実施
     try:
-        # TODO : forループで回すのは遅いので、処理の見直しが必要
-        results = []
+        input_texts = []
         for body_info in body_infos_with_id.values():
-            predicted_texts = summarizer.predict(inputs=[body_info.get_body()])
-            results.append(
-                predicted_texts[0]
-            )  # T5Summarizerでは、要約候補の文章が10個出てくるが、もっともスコアが高いもののみを採用
-    except SummarizerError as e:
+            input_texts.append(body_info.get_body())
+
+        results = api_client.post_summarize_body(body_texts=input_texts)
+    except ApiClientError as e:
         logger.error(e)
         return SummarizerProcessResult.error_of_summarizer
     if len(body_infos_with_id) != len(results):
@@ -153,7 +158,7 @@ def loop_process(
         )
         return SummarizerProcessResult.error_of_summarizer
 
-    ### 推論処理の結果をDBに保存
+    # 推論処理の結果をDBに保存
     summarize_results = []
     for (_, body_info), predicted_text in zip(
         body_infos_with_id.items(), results
@@ -167,7 +172,7 @@ def loop_process(
         summarize_results.append(summarize_result)
     db_instance.insert_summarize_results(result_infos=summarize_results)
 
-    ### DBの推論ジョブのステータスを更新
+    # DBの推論ジョブのステータスを更新
     job_infos = []
     for message_id, result in zip(
         body_infos_with_id.keys(), summarize_results

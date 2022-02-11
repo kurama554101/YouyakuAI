@@ -1,22 +1,21 @@
+include .env
 MAKEFILE_DIR:=$(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 COMPOSE_FILES=docker-compose.yml:docker-compose-test.yml
-# 下記はmake実行前に個別に設定すること
-GOOGLE_PROJECT_ID=xxxx # need to set project_id
 GOOGLE_SERVICE_ACCOUNT=youyaku-ai-account@${GOOGLE_PROJECT_ID}.iam.gserviceaccount.com
 GOOGLE_APPLICATION_CREDENTIALS=${MAKEFILE_DIR}credentials/youyaku-ai-service-account.json
-GOOGLE_LOCATION=us.gcr.io
-GOOGLE_MAIL=xxx@gmail.com # need to set mail address
-GOOBLE_BUCKET_NAME=youyaku_ai_pipeline
-GOOGLE_BUCKET_LOCATION=US-CENTRAL1
+
+echo-param:
+	echo ${GOOGLE_PROJECT_ID}
+	echo ${GOOGLE_SERVICE_ACCOUNT_FILE}
 
 setup-service-account:
 	gcloud projects add-iam-policy-binding ${GOOGLE_PROJECT_ID} --member="serviceAccount:${GOOGLE_SERVICE_ACCOUNT}" --role="roles/aiplatform.user"
 	gcloud projects add-iam-policy-binding ${GOOGLE_PROJECT_ID} --member="serviceAccount:${GOOGLE_SERVICE_ACCOUNT}" --role="roles/iam.serviceAccountUser"
 	gcloud iam service-accounts add-iam-policy-binding ${GOOGLE_SERVICE_ACCOUNT} --member="user:${GOOGLE_MAIL}" --role="roles/iam.serviceAccountUser"
 
-setup-account:
-	export GOOGLE_APPLICATION_CREDENTIALS=${GOOGLE_APPLICATION_CREDENTIALS}
-	gcloud auth activate-service-account ${GOOGLE_SERVICE_ACCOUNT} --key-file=${GOOGLE_APPLICATION_CREDENTIALS}
+#setup-account:
+#	export GOOGLE_APPLICATION_CREDENTIALS=${GOOGLE_APPLICATION_CREDENTIALS}
+#	gcloud auth activate-service-account ${GOOGLE_SERVICE_ACCOUNT} --key-file=${GOOGLE_APPLICATION_CREDENTIALS}
 
 setup-bucket:
 	gsutil mb -p ${GOOGLE_PROJECT_ID} -l ${GOOGLE_BUCKET_LOCATION} gs://${GOOBLE_BUCKET_NAME}
@@ -51,7 +50,12 @@ build-pipeline:
 	python3 model_pipeline/pipeline.py
 
 run-pipeline:
-	python3 model_pipeline/pipeline.py --run_pipeline
+	python3 model_pipeline/pipeline.py --run_pipeline --pipeline_type gcp
 
 build-push-component:
+	python3 build_and_deploy_image.py --docker_type gcr
+	python3 model_pipeline/build_all_components.py --docker_type gcr
+
+rebuild-push-component:
+	python3 build_and_deploy_image.py --docker_type gcr --rebuild
 	python3 model_pipeline/build_all_components.py --docker_type gcr

@@ -9,16 +9,19 @@ import argparse
 import kfp
 from kfp.v2 import compiler as v2_compiler
 from kfp import compiler as v1_compiler
-from kfp.v2.google.client import AIPlatformClient
+from kfp.v2.dsl import component, Input, Artifact
+from google.cloud import aiplatform
 
 #
 # CONSTANTS
 # ------------------------------------------------------------------------------
+
+
 class GeneratedData(Enum):
-    TrainData = "train_data_path"
-    ValData = "val_data_path"
-    TestData = "test_data_path"
-    TrainedModel = "trained_model_path"
+    TrainData = "train_data"
+    ValData = "val_data"
+    TestData = "test_data"
+    TrainedModel = "trained_model"
 
 
 class PipelineType(Enum):
@@ -184,31 +187,34 @@ class DefaultPipeline:
         return template.substitute(tagged_name=image)
 
     def create_data_generator_op(
-        self, random_seed: int
+        self, random_seed: int, is_caching: bool = True
     ) -> kfp.dsl.ContainerOp:
         name = ComponentNames.DATA_GENERATOR.value
         component_spec = self.get_component_spec(name)
         data_generator_op = kfp.components.load_component_from_text(
             component_spec
         )
-        return data_generator_op(random_seed=random_seed)
+        return data_generator_op(random_seed=random_seed).set_caching_options(
+            is_caching
+        )
 
     def create_trainer_op(
         self,
-        train_data_path: str,
-        val_data_path: str,
-        test_data_path: str,
+        train_data: str,
+        val_data: str,
+        test_data: str,
         suffix: str,
         parameters: str,
+        is_caching: bool = True,
     ) -> kfp.dsl.ContainerOp:
         name = ComponentNames.TRAINER.value
         component_spec = self.get_component_spec(name)
         trainer_op = kfp.components.load_component_from_text(component_spec)
         return (
             trainer_op(
-                train_data_path=train_data_path,
-                val_data_path=val_data_path,
-                test_data_path=test_data_path,
+                train_data=train_data,
+                val_data=val_data,
+                test_data=test_data,
                 suffix=suffix,
                 parameters=parameters,
             )
@@ -217,6 +223,7 @@ class DefaultPipeline:
                 "cloud.google.com/gke-accelerator", "nvidia-tesla-p100",
             )
             .set_gpu_limit(1)
+            .set_caching_options(is_caching)
         )
 
     def create_pipeline(self):
@@ -236,15 +243,11 @@ class DefaultPipeline:
                 random_seed=random_seed
             )
             _ = self.create_trainer_op(
-                train_data_path=data_generator.outputs[
+                train_data=data_generator.outputs[
                     GeneratedData.TrainData.value
                 ],
-                val_data_path=data_generator.outputs[
-                    GeneratedData.ValData.value
-                ],
-                test_data_path=data_generator.outputs[
-                    GeneratedData.TestData.value
-                ],
+                val_data=data_generator.outputs[GeneratedData.ValData.value],
+                test_data=data_generator.outputs[GeneratedData.TestData.value],
                 suffix=suffix,
                 parameters=parameters,
             )
@@ -259,16 +262,25 @@ class DefaultPipeline:
         return pipeline_file_path
 
     def compile_pipeline(
-        self, pipeline_func: Callable, pipeline_file_path: str
+        self,
+        pipeline_func: Callable,
+        pipeline_file_path: str,
+        type_check: bool = True,
     ):
         ext = os.path.splitext(pipeline_file_path)[1]
         if ext == ".yaml":
+            print("v1 compile")
             v1_compiler.Compiler().compile(
-                pipeline_func=pipeline_func, package_path=pipeline_file_path,
+                pipeline_func=pipeline_func,
+                package_path=pipeline_file_path,
+                type_check=type_check,
             )
         elif ext == ".json":
+            print("v2 compile")
             v2_compiler.Compiler().compile(
-                pipeline_func=pipeline_func, package_path=pipeline_file_path,
+                pipeline_func=pipeline_func,
+                package_path=pipeline_file_path,
+                type_check=type_check,
             )
         else:
             raise NotImplementedError(
@@ -293,20 +305,195 @@ class DefaultPipeline:
 
 
 class PipelineWithVertexAI(DefaultPipeline):
-    def run_pipeline(self, pipeline_func: Callable, pipeline_file_path: str):
-        # パラメーターの設定
-        pipeline_func = self.create_pipeline()
-        pipeline_file_name = self._config.get_pipeline_name() + ".json"
-        pipeline_file_path = os.path.join(
-            os.path.dirname(__file__), pipeline_file_name
+    def create_pipeline(self):
+        params = self._config.get_model_param_dict()
+        random_seed = params["hyper_parameters"]["random_seed"]
+        suffix = self._config.get_suffix()
+        pipeline_name = self._config.get_pipeline_name()
+        pipeline_root = self._config.get_pipeline_root()
+        pipeline_params = self._config.get_pipeline_param_dict()["gcp"]
+
+        @kfp.dsl.pipeline(
+            name=pipeline_name, pipeline_root=pipeline_root,
         )
+        def kfp_youyakuai_pipeline(
+            suffix: str = suffix, parameters: str = params
+        ):
+            data_generator = self.create_data_generator_op(
+                random_seed=random_seed
+            ).set_caching_options(True)
+            trainer = self.create_trainer_op(
+                train_data=data_generator.outputs[
+                    GeneratedData.TrainData.value
+                ],
+                val_data=data_generator.outputs[GeneratedData.ValData.value],
+                test_data=data_generator.outputs[GeneratedData.TestData.value],
+                suffix=suffix,
+                parameters=parameters,
+            ).set_caching_options(True)
+
+            # パラメーターの取得
+            project = pipeline_params["project_id"]
+            model_name = f"{project}-model"
+            endpoint_name = f"{project}-endpoint"
+            deploy_name = f"{project}-deploy"
+            serving_container_image_uri = pipeline_params[
+                "serving_docker_image_uri"
+            ]
+            serving_container_port = int(
+                pipeline_params["serving_container_port"]
+            )
+            serving_machine_type = pipeline_params["serving_machine_type"]
+            serving_min_replicas = pipeline_params["serving_min_replicas"]
+            serving_max_replicas = pipeline_params["serving_max_replicas"]
+            region = pipeline_params.get("region")
+            deploy_traffic_percentage = pipeline_params[
+                "deploy_traffic_percentage"
+            ]
+
+            # 下記を実施
+            # エンドポイントの作成
+            # モデルのアップロード
+            # モデルのデプロイ（エンドポイントとの紐付け）
+            deploy_op = self.create_deploy_op(
+                artifact_uri=trainer.outputs[GeneratedData.TrainedModel.value],
+                model_name=model_name,
+                serving_container_image_uri=serving_container_image_uri,
+                serving_container_environment_variables=dict({}),
+                serving_container_ports=serving_container_port,
+                endpoint_name=endpoint_name,
+                deploy_name=deploy_name,
+                machine_type=serving_machine_type,
+                min_replicas=serving_min_replicas,
+                max_replicas=serving_max_replicas,
+                project=project,
+                location=region,
+                traffic_percentage=deploy_traffic_percentage,
+            ).set_caching_options(True)
+
+            _ = self.debug_endpoint_name_op(endpoint_name=deploy_op.output)
+
+        return kfp_youyakuai_pipeline
+
+    def create_deploy_op(
+        self,
+        artifact_uri: Input[Artifact],
+        model_name: str,
+        serving_container_image_uri: str,
+        serving_container_environment_variables: str,
+        serving_container_ports: int,
+        endpoint_name: str,
+        deploy_name: str,
+        machine_type: str,
+        min_replicas: int,
+        max_replicas: int,
+        project: str,
+        location: str,
+        traffic_percentage: int = 100,
+    ) -> kfp.dsl.ContainerOp:
+        @component(
+            packages_to_install=[
+                "google-cloud-aiplatform",
+                "google-cloud-storage",
+            ]
+        )
+        def deploy_func(
+            artifact_uri: Input[Artifact],
+            model_name: str,
+            serving_container_image_uri: str,
+            serving_container_environment_variables: str,
+            serving_container_ports: int,
+            endpoint_name: str,
+            deploy_name: str,
+            machine_type: str,
+            min_replicas: int,
+            max_replicas: int,
+            project: str,
+            location: str,
+            traffic_percentage: int = 100,
+        ) -> str:
+            # setup packages
+            from google.cloud import aiplatform
+            import json
+
+            traffic_split = None
+
+            # convert the mounted /gcs/ pass to gs:// location
+            artifact_uri = artifact_uri.uri
+            artifact_uri = artifact_uri.replace("/gcs/", "gs://", 1).rsplit(
+                "/", maxsplit=1
+            )[0]
+            print(f"model url is {artifact_uri}")
+
+            # convert json string to dict
+            if serving_container_environment_variables is not None:
+                serving_container_environment_variables = json.loads(
+                    serving_container_environment_variables
+                )
+
+            aiplatform.init(project=project, location=location)
+
+            model = aiplatform.Model.upload(
+                display_name=model_name,
+                serving_container_image_uri=serving_container_image_uri,
+                artifact_uri=artifact_uri,
+                serving_container_environment_variables=serving_container_environment_variables,
+                serving_container_ports=[serving_container_ports],
+            )
+
+            endpoints = aiplatform.Endpoint.list(
+                filter=f"display_name={endpoint_name}",
+                order_by="create_time desc",
+            )
+            if len(endpoints) > 0:
+                endpoint = endpoints[0]
+            else:
+                endpoint = aiplatform.Endpoint.create(
+                    display_name=endpoint_name
+                )
+            print(f"Target endpoint: {endpoint.resource_name}")
+
+            model.deploy(
+                endpoint=endpoint,
+                deployed_model_display_name=deploy_name,
+                machine_type=machine_type,
+                min_replica_count=min_replicas,
+                max_replica_count=max_replicas,
+                traffic_percentage=traffic_percentage,
+                traffic_split=traffic_split,
+            )
+            print(model.display_name)
+            print(model.resource_name)
+            return endpoint.resource_name
+
+        return deploy_func(
+            artifact_uri=artifact_uri,
+            model_name=model_name,
+            serving_container_image_uri=serving_container_image_uri,
+            serving_container_environment_variables=serving_container_environment_variables,
+            serving_container_ports=serving_container_ports,
+            endpoint_name=endpoint_name,
+            deploy_name=deploy_name,
+            machine_type=machine_type,
+            min_replicas=min_replicas,
+            max_replicas=max_replicas,
+            project=project,
+            location=location,
+            traffic_percentage=traffic_percentage,
+        )
+
+    def debug_endpoint_name_op(
+        self, endpoint_name: str
+    ) -> kfp.dsl.ContainerOp:
+        @component
+        def display_endpoint_name(endpoint_name: str):
+            print(endpoint_name)
+
+        return display_endpoint_name(endpoint_name=endpoint_name)
+
+    def run_pipeline(self, pipeline_func: Callable, pipeline_file_path: str):
         pipeline_root = self._config.get_pipeline_root()
         pipeline_param_dict = self._config.get_pipeline_param_dict()
-
-        # pipelineファイルの作成
-        self.compile_pipeline(
-            pipeline_func=pipeline_func, pipeline_file_path=pipeline_file_path
-        )
 
         # パイプラインに渡すパラメーターの設定
         pipeline_parameters = {
@@ -323,16 +510,19 @@ class PipelineWithVertexAI(DefaultPipeline):
         service_account = (
             f"{service_account_prefix}@{project_id}.iam.gserviceaccount.com"
         )
-        api_client = AIPlatformClient(project_id=project_id, region=region)
-        pipeline_run_name = api_client.create_run_from_job_spec(
-            job_spec_path=pipeline_file_path,
+        enable_caching = pipeline_param_dict.get("gcp").get("enable_caching")
+
+        # pipelineの実行
+        job = aiplatform.PipelineJob(
+            display_name=self._config.get_pipeline_name(),
+            project=project_id,
+            location=region,
+            template_path=pipeline_file_path,
             pipeline_root=pipeline_root,
-            # enable_caching=False,
-            enable_caching=True,
-            service_account=service_account,
+            enable_caching=enable_caching,
             parameter_values=pipeline_parameters,
         )
-        return pipeline_run_name
+        job.run(service_account=service_account)
 
 
 #
@@ -407,7 +597,9 @@ if __name__ == "__main__":
     # create pipeline file
     pipeline_func = pipeline_instance.create_pipeline()
     pipeline_instance.compile_pipeline(
-        pipeline_func=pipeline_func, pipeline_file_path=pipeline_file_path
+        pipeline_func=pipeline_func,
+        pipeline_file_path=pipeline_file_path,
+        type_check=True,
     )
     if args.run_pipeline:
         # TODO : ローカルではデプロイ処理が動作しないので、修正が必要

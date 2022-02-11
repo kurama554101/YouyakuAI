@@ -32,7 +32,7 @@ class TestTrainer(unittest.TestCase):
         self.out_dest = OutputDestinations(output_folder)
 
     def tearDown(self) -> None:
-        shutil.rmtree(self.out_dest.trained_model_dir)
+        shutil.rmtree(self.out_dest.trained_model)
 
     def test_main(self):
         model = main(args=self.args)

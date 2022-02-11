@@ -13,8 +13,10 @@ services:
       - ./src/db:/workspace/db
       - ./src/log:/workspace/log
       - ./src/summarizer:/workspace/summarizer
+      - ./src/summarizer_processor:/workspace/summarizer_processor
       - ./src/dashboard:/workspace/dashboard
       - ./credentials:/workspace/credentials
+      - ./model:/workspace/summarizer/model
     tty: true
     environment:
       QUEUE_HOST: ${QUEUE_HOST}

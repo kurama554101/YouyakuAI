@@ -1,6 +1,7 @@
 from transformers import T5ForConditionalGeneration, T5Tokenizer
 import torch
 from nlp_util import normalize_text
+import numpy as np
 
 
 class T5Summarizer:
@@ -96,7 +97,7 @@ class T5Summarizer:
         return input_ids, input_mask
 
     def __postprocess(self, outputs: list) -> list:
-        generated_texts = [
+        tmp_generated_texts = [
             self.__tokenizer.decode(
                 ids,
                 skip_special_tokens=True,
@@ -104,6 +105,13 @@ class T5Summarizer:
             )
             for ids in outputs
         ]
+
+        # 対象文に対して、生成される要訳文に応じて、リストを分割する
+        generated_texts = (
+            np.array(tmp_generated_texts)
+            .reshape(-1, self.__num_return_sequences)
+            .tolist()
+        )
         return generated_texts
 
 

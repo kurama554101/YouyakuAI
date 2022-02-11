@@ -1,16 +1,8 @@
-transformers==4.5.1
-tqdm==4.60.0
-watchtower
 aiokafka
 sqlalchemy
 sqlalchemy_utils
-sentencepiece
-#mysqlclient
 mysql-connector-python
 google-cloud-bigquery
+watchtower
 more_itertools
-fastapi
-uvicorn
-requests
-google-cloud-storage
 google-cloud-aiplatform

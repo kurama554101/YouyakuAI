@@ -1,11 +1,8 @@
+fastapi
+uvicorn
 transformers==4.5.1
 tqdm==4.60.0
 watchtower
-aiokafka
-sqlalchemy
-sqlalchemy_utils
 sentencepiece
-#mysqlclient
-mysql-connector-python
-google-cloud-bigquery
 more_itertools
+google-cloud-storage

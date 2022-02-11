@@ -38,7 +38,7 @@ services:
       GOOGLE_APPLICATION_CREDENTIALS: ${GOOGLE_SERVICE_ACCOUNT_FILE}
     tty: true
     ports:
-      - "8501:8501"  # for streamlit or plotly dash
+      - "8501:8501" # for streamlit or plotly dash
     depends_on:
       - youyaku_ai_db
       - youyaku_ai_api_gateway
@@ -72,18 +72,45 @@ services:
     depends_on:
       - youyaku_ai_db
       - youyaku_ai_queue_broker
+      - youyaku_ai_summarizer_processor
     entrypoint: "uvicorn api_gateway.main:app --reload --host 0.0.0.0 --port ${API_PORT}"
   youyaku_ai_summarizer:
     image: youyaku_ai_summarizer
     build:
       context: ./docker/summarizer
       dockerfile: ./Dockerfile
+      target: local
     container_name: youyaku_ai_summarizer
+    volumes:
+      - ./src/log:/workspace/log
+      - ./src/summarizer:/workspace/summarizer
+      - ./model:/workspace/summarizer/model
+    environment:
+      SUMMARIZER_INTERNAL_API_LOCAL_PORT: ${SUMMARIZER_INTERNAL_API_LOCAL_PORT}
+    ports:
+      - "${SUMMARIZER_INTERNAL_API_LOCAL_PORT}:${SUMMARIZER_INTERNAL_API_LOCAL_\
+        PORT}"
+    tty: true
+    healthcheck:
+      test: [ "CMD-SHELL", "python summarizer/health_check.py" ]
+      start_period: "10s"
+      retries: 10
+      timeout: "10s"
+      interval: "10s"
+    entrypoint: "uvicorn summarizer.serve:app --reload --host 0.0.0.0 --port
+      ${SUMMARIZER_INTERNAL_API_LOCAL_PORT}"
+  youyaku_ai_summarizer_processor:
+    image: youyaku_ai_summarizer_processor
+    build:
+      context: ./docker/summarizer_processor
+      dockerfile: ./Dockerfile
+      target: local
+    container_name: youyaku_ai_summarizer_processor
     volumes:
       - ./src/queue_api:/workspace/queue_api
       - ./src/db:/workspace/db
       - ./src/log:/workspace/log
-      - ./src/summarizer:/workspace/summarizer
+      - ./src/summarizer_processor:/workspace/summarizer_processor
       - ./credentials:/workspace/credentials
     tty: true
     environment:
@@ -97,10 +124,20 @@ services:
       DB_NAME: ${DB_NAME}
       DB_TYPE: ${DB_TYPE}
       GOOGLE_APPLICATION_CREDENTIALS: ${GOOGLE_SERVICE_ACCOUNT_FILE}
+      SUMMARIZER_INTERNAL_API_LOCAL_HOST: ${SUMMARIZER_INTERNAL_API_LOCAL_HOST}
+      SUMMARIZER_INTERNAL_API_LOCAL_PORT: ${SUMMARIZER_INTERNAL_API_LOCAL_PORT}
+      SUMMARIZER_INTERNAL_API_TYPE: ${SUMMARIZER_INTERNAL_API_TYPE}
+      GOOGLE_PROJECT_ID: ${GOOGLE_PROJECT_ID}
+      GOOGLE_PREDICTION_LOCATION: ${GOOGLE_PREDICTION_LOCATION}
+      GOOGLE_PREDICTION_ENDPOINT: ${GOOGLE_PREDICTION_ENDPOINT}
     depends_on:
-      - youyaku_ai_db
-      - youyaku_ai_queue_broker
-    entrypoint: "python3 summarizer/summarizer_process.py"
+      youyaku_ai_db:
+        condition: service_started
+      youyaku_ai_queue_broker:
+        condition: service_started
+      youyaku_ai_summarizer:
+        condition: service_healthy
+    entrypoint: "python3 summarizer_processor/summarizer_process.py"
   youyaku_ai_queue_zookeeper:
     image: bitnami/zookeeper:latest
     container_name: youyaku_ai_queue_zookeeper
