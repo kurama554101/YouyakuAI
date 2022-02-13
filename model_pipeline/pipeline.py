@@ -1,4 +1,4 @@
-from typing import Callable, Union
+from typing import Callable, Union, List, Dict
 from pathlib import Path
 from string import Template
 import yaml
@@ -337,6 +337,7 @@ class PipelineWithVertexAI(DefaultPipeline):
             model_name = f"{project}-model"
             endpoint_name = f"{project}-endpoint"
             deploy_name = f"{project}-deploy"
+            monitoring_name = f"{project}-monitor"
             serving_container_image_uri = pipeline_params[
                 "serving_docker_image_uri"
             ]
@@ -350,6 +351,12 @@ class PipelineWithVertexAI(DefaultPipeline):
             deploy_traffic_percentage = pipeline_params[
                 "deploy_traffic_percentage"
             ]
+            alert_emails = pipeline_params["alert_emails"]
+            skew_thresholds_dict = pipeline_params["skew_thresholds_dict"]
+            drift_thresholds_dict = pipeline_params["drift_thresholds_dict"]
+            prediction_target_label = pipeline_params["predict_target_field"]
+            monitor_interval_sec = pipeline_params["monitor_interval_sec"]
+            monitor_sampling_rate = pipeline_params["monitor_sampling_rate"]
 
             # 下記を実施
             # エンドポイントの作成
@@ -371,7 +378,33 @@ class PipelineWithVertexAI(DefaultPipeline):
                 traffic_percentage=deploy_traffic_percentage,
             ).set_caching_options(True)
 
-            _ = self.debug_endpoint_name_op(endpoint_name=deploy_op.output)
+            # 学習用のcsvファイルをbigqueryに格納
+            save_csv_file_to_bq_op = self.save_train_data_into_bigquery_op(
+                dataset_gcs_train_csv_file_uri=data_generator.outputs[
+                    GeneratedData.TrainData.value
+                ],
+                project_id=project,
+                location=region,
+                prediction_target_label=prediction_target_label,
+            )
+
+            # モニタリングの構築
+            table_full_name = save_csv_file_to_bq_op.output
+            bq_uri = f"bq://{project}.{table_full_name}"
+            _ = self.create_monitoring_op(
+                display_name=monitoring_name,
+                endpoint_name=deploy_op.output,
+                emails=alert_emails,
+                skew_thresholds_dict=skew_thresholds_dict,
+                drift_thresholds_dict=drift_thresholds_dict,
+                predict_target_field=prediction_target_label,
+                dataset_bq_source_uri=bq_uri,
+                dataset_gcs_train_csv_file_uri=data_generator.outputs[
+                    GeneratedData.TrainData.value
+                ],
+                monitor_interval_sec=monitor_interval_sec,
+                sampling_rate=monitor_sampling_rate,
+            )
 
         return kfp_youyakuai_pipeline
 
@@ -480,6 +513,326 @@ class PipelineWithVertexAI(DefaultPipeline):
             project=project,
             location=location,
             traffic_percentage=traffic_percentage,
+        )
+
+    def create_monitoring_op(
+        self,
+        display_name: str,
+        endpoint_name: str,
+        emails: List[str],
+        skew_thresholds_dict: Dict[str, float],
+        drift_thresholds_dict: Dict[str, float],
+        predict_target_field: str,
+        dataset_gcs_train_csv_file_uri: Input[Artifact],
+        dataset_bq_source_uri: str = "",
+        sampling_rate: float = 0.8,
+        monitor_interval_sec: int = 3600,
+    ) -> kfp.dsl.ContainerOp:
+        @component(
+            packages_to_install=["google-cloud-aiplatform"],
+            base_image="python:3.9",
+        )
+        def monitoring_func(
+            display_name: str,
+            endpoint_name: str,
+            emails: List[str],
+            skew_thresholds_dict: Dict[str, float],
+            drift_thresholds_dict: Dict[str, float],
+            predict_target_field: str,
+            dataset_gcs_train_csv_file_uri: Input[Artifact],
+            dataset_bq_source_uri: str = "",
+            sampling_rate: float = 0.8,
+            monitor_interval_sec: int = 3600,
+        ):
+            from google.cloud.aiplatform_v1.types.model_monitoring import (
+                ModelMonitoringAlertConfig,
+                ModelMonitoringObjectiveConfig,
+                SamplingStrategy,
+                ThresholdConfig,
+            )
+            from google.cloud.aiplatform_v1.types.model_deployment_monitoring_job import (
+                ModelDeploymentMonitoringScheduleConfig,
+                ModelDeploymentMonitoringJob,
+                ModelDeploymentMonitoringObjectiveConfig,
+            )
+            from google.cloud.aiplatform_v1.services.endpoint_service import (
+                EndpointServiceClient,
+            )
+            from google.cloud.aiplatform_v1.services.job_service import (
+                JobServiceClient,
+            )
+            from google.protobuf.duration_pb2 import Duration
+            from google.cloud.aiplatform_v1.types.io import (
+                BigQuerySource,
+                GcsSource,
+            )
+            from google.protobuf.field_mask_pb2 import FieldMask
+            from google.protobuf.struct_pb2 import Struct
+            import copy
+
+            # Get 'api_endpoint' parameter from 'endpoint_name'
+            # 'endpoint_name' format is "projects/{PROJECT_ID}/locations/{REGION}/endpoints/{ENDPOINT_ID}"
+            api_region = endpoint_name.split("/")[3]
+            api_project_id = endpoint_name.split("/")[1]
+            api_endpoint = f"{api_region}-aiplatform.googleapis.com"
+            api_parent = f"projects/{api_project_id}/locations/{api_region}"
+
+            # Get model ids from endpoint name.
+            def get_deployed_model_ids(
+                api_endpoint: str, endpoint_name: str
+            ) -> list:
+                client_options = dict(api_endpoint=api_endpoint)
+                client = EndpointServiceClient(client_options=client_options)
+                response = client.get_endpoint(name=endpoint_name)
+                model_ids = []
+                for model in response.deployed_models:
+                    model_ids.append(model.id)
+                return model_ids
+
+            model_ids = get_deployed_model_ids(
+                api_endpoint=api_endpoint, endpoint_name=endpoint_name
+            )
+
+            # Get skew and drift thresholds
+            def get_thresholds(target_thresholds: Dict[str, float]):
+                thresholds = {}
+                for feature, threshold_value in target_thresholds.items():
+                    threshold = ThresholdConfig(value=threshold_value)
+                    thresholds[feature] = threshold
+                return thresholds
+
+            skew_config = ModelMonitoringObjectiveConfig.TrainingPredictionSkewDetectionConfig(
+                skew_thresholds=get_thresholds(
+                    target_thresholds=skew_thresholds_dict
+                )
+            )
+            drift_config = ModelMonitoringObjectiveConfig.PredictionDriftDetectionConfig(
+                drift_thresholds=get_thresholds(
+                    target_thresholds=drift_thresholds_dict
+                )
+            )
+
+            # Get training dataset parameters
+            training_dataset = ModelMonitoringObjectiveConfig.TrainingDataset(
+                target_field=predict_target_field
+            )
+            if len(dataset_bq_source_uri) != 0:
+                print(f"dataset bq uri is {dataset_bq_source_uri}")
+                training_dataset.bigquery_source = BigQuerySource(
+                    input_uri=dataset_bq_source_uri
+                )
+            else:
+                # convert strings from Artifacts
+                print(
+                    f"dataset gcs file uri is {dataset_gcs_train_csv_file_uri.uri}"
+                )
+                gcs_uris = [dataset_gcs_train_csv_file_uri.uri]
+                training_dataset.gcs_source = GcsSource(uris=gcs_uris)
+                training_dataset.data_format = "csv"
+
+            # Create object configuration template.
+            objective_config = ModelMonitoringObjectiveConfig(
+                training_dataset=training_dataset,
+                training_prediction_skew_detection_config=skew_config,
+                prediction_drift_detection_config=drift_config,
+            )
+            objective_template = ModelDeploymentMonitoringObjectiveConfig(
+                objective_config=objective_config
+            )
+
+            def get_objectives(
+                model_ids: list,
+                objective_template: ModelDeploymentMonitoringObjectiveConfig,
+            ) -> List[ModelDeploymentMonitoringObjectiveConfig]:
+                objective_configs = []
+                for model_id in model_ids:
+                    objective_config = copy.deepcopy(objective_template)
+                    objective_config.deployed_model_id = model_id
+                    objective_configs.append(objective_config)
+                return objective_configs
+
+            objective_configs = get_objectives(
+                model_ids=model_ids, objective_template=objective_template
+            )
+            if len(objective_configs) == 0:
+                # model is not attached to endpoint
+                raise ValueError(
+                    f"model is not attached to target endpoint. endpoint name is {endpoint_name}"
+                )
+
+            # Create sampling configuration.
+            random_sampling = SamplingStrategy.RandomSampleConfig(
+                sample_rate=sampling_rate
+            )
+            sampling_config = SamplingStrategy(
+                random_sample_config=random_sampling
+            )
+
+            # Create schedule configuration.
+            duration = Duration(seconds=monitor_interval_sec)
+            schedule_config = ModelDeploymentMonitoringScheduleConfig(
+                monitor_interval=duration
+            )
+
+            # Create alerting configuration.
+            email_config = ModelMonitoringAlertConfig.EmailAlertConfig(
+                user_emails=emails
+            )
+            alerting_config = ModelMonitoringAlertConfig(
+                email_alert_config=email_config
+            )
+
+            # Create the monitoring Job.
+            sample_schema = Struct()
+            sample_schema.update({"instances": {"input_text": "これはサンプルです"}})
+            job = ModelDeploymentMonitoringJob(
+                display_name=display_name,
+                endpoint=endpoint_name,
+                model_deployment_monitoring_objective_configs=objective_configs,
+                logging_sampling_strategy=sampling_config,
+                model_deployment_monitoring_schedule_config=schedule_config,
+                model_monitoring_alert_config=alerting_config,
+                sample_predict_instance=sample_schema,
+            )
+
+            # check the exist of monitoring job
+            def get_monitoring_job_in_target_endpoint(
+                api_endpoint: str, api_parent: str, endpoint_full_name: str
+            ) -> ModelDeploymentMonitoringJob:
+                client_options = dict(api_endpoint=api_endpoint)
+                client = JobServiceClient(client_options=client_options)
+                response = client.list_model_deployment_monitoring_jobs(
+                    parent=api_parent
+                )
+
+                for monitor_job in response:
+                    if monitor_job.endpoint == endpoint_full_name:
+                        return monitor_job
+                return None
+
+            exist_monitor_job = get_monitoring_job_in_target_endpoint(
+                api_endpoint=api_endpoint,
+                api_parent=api_parent,
+                endpoint_full_name=endpoint_name,
+            )
+
+            # Run the monitoring job
+            client_options = dict(api_endpoint=api_endpoint)
+            client = JobServiceClient(client_options=client_options)
+            if exist_monitor_job is not None:
+                print("Updated monitoring job:")
+                job_name = exist_monitor_job.name
+                print(f"exist job name is {job_name}")
+                response = client.delete_model_deployment_monitoring_job(
+                    name=job_name
+                )
+                print(f"delete response is {response}")
+                response = client.create_model_deployment_monitoring_job(
+                    parent=api_parent, model_deployment_monitoring_job=job
+                )
+            else:
+                print("Created monitoring job:")
+                response = client.create_model_deployment_monitoring_job(
+                    parent=api_parent, model_deployment_monitoring_job=job
+                )
+            print(response)
+
+        return monitoring_func(
+            display_name=display_name,
+            endpoint_name=endpoint_name,
+            emails=emails,
+            skew_thresholds_dict=skew_thresholds_dict,
+            drift_thresholds_dict=drift_thresholds_dict,
+            predict_target_field=predict_target_field,
+            dataset_bq_source_uri=dataset_bq_source_uri,
+            dataset_gcs_train_csv_file_uri=dataset_gcs_train_csv_file_uri,
+            sampling_rate=sampling_rate,
+            monitor_interval_sec=monitor_interval_sec,
+        )
+
+    def save_train_data_into_bigquery_op(
+        self,
+        dataset_gcs_train_csv_file_uri: Input[Artifact],
+        project_id: str,
+        location: str,
+        prediction_target_label: str,
+    ) -> kfp.dsl.ContainerOp:
+        @component(
+            packages_to_install=[
+                "google-cloud-storage",
+                "pandas",
+                "pandas-gbq",
+            ]
+        )
+        def save_train_data_into_bigquery(
+            dataset_gcs_train_csv_file_uri: Input[Artifact],
+            project_id: str,
+            location: str,
+            prediction_target_label: str,
+        ) -> str:
+            # set the packages
+            from google.cloud import storage
+            import os
+            import pandas as pd
+
+            # download the csv file from gcs
+            def download_file(file_uri: str, dest_dir: str):
+                client = storage.Client()
+
+                # get bucket name and file prefix
+                bucket_name, prefix = file_uri.replace("gs://", "").split(
+                    "/", 1
+                )
+                print(f"bucket name is {bucket_name}")
+
+                # download files
+                blobs = client.list_blobs(bucket_name, prefix=prefix)
+                file_paths = []
+                for blob in blobs:
+                    filename = blob.name.split("/")[-1]
+                    print(f"target file name is {filename}")
+                    file_path = os.path.join(dest_dir, filename)
+                    print(f"target path of local file is {file_path}")
+                    blob.download_to_filename(file_path)
+                    file_paths.append(file_path)
+
+                if len(file_paths) != 1:
+                    raise ValueError(
+                        f"there are some files of train data! blobs are {file_paths}"
+                    )
+
+                return file_paths[0]
+
+            dir_path = "tmp"
+            os.makedirs(dir_path, exist_ok=True)
+            file_uri = dataset_gcs_train_csv_file_uri.uri
+            csv_file_path = download_file(file_uri=file_uri, dest_dir=dir_path)
+
+            # convert the csv file to dataframe
+            df = pd.read_csv(
+                csv_file_path,
+                index_col=False,
+                names=(prediction_target_label, "input_text", "genre_id"),
+            )
+
+            # insert the dataframe into bigquery
+            dataset_name = "monitoring_dataset"
+            table_name = "train_data"
+            table_full_name = f"{dataset_name}.{table_name}"
+            df.to_gbq(
+                destination_table=table_full_name,
+                project_id=project_id,
+                location=location,
+                if_exists="replace",
+            )
+
+            return table_full_name
+
+        return save_train_data_into_bigquery(
+            dataset_gcs_train_csv_file_uri=dataset_gcs_train_csv_file_uri,
+            project_id=project_id,
+            location=location,
+            prediction_target_label=prediction_target_label,
         )
 
     def debug_endpoint_name_op(
