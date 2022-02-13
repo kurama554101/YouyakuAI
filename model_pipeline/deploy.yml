@@ -26,5 +26,13 @@ pipeline:
     serving_max_replicas: 1
     deploy_traffic_percentage: 100
     enable_caching: True
+    alert_emails: []
+    skew_thresholds_dict:
+      "input_text": 0.01
+    drift_thresholds_dict:
+      "input_text": 0.01
+    predict_target_field: "target"
+    monitor_interval_sec: 3600
+    monitor_sampling_rate: 0.8
   aws:
     pipeline_root: "" # TODO imp
