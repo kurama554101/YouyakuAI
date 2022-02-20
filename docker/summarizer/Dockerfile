@@ -6,7 +6,7 @@ WORKDIR /workspace
 ENV PYTHONPATH $PYTHONPATH:/workspace
 
 #
-# BUILD LOCAL IMAGE For TEST
+# BUILD LOCAL IMAGE
 # ------------------------------------------------------------------------------
 FROM build_base AS local
 
@@ -23,11 +23,14 @@ ADD ${base_path}/docker/summarizer/requirements.txt .
 RUN pip3 install -r requirements.txt
 ENV BUILD_MODE="production"
 
-ARG PORT=8001
-EXPOSE $PORT
+ARG port
+EXPOSE ${port}
 
 COPY src/summarizer summarizer
 COPY src/log log
 
-# TODO : portをARGのPORTを使うように修正
-ENTRYPOINT [ "uvicorn", "summarizer.serve:app", "--reload", "--host", "0.0.0.0", "--port", "8001" ]
+# execute test
+RUN cd summarizer && python3 -m unittest
+
+# set entrypoint
+ENTRYPOINT [ "uvicorn", "summarizer.serve:app", "--reload", "--host", "0.0.0.0", "--port", ${port} ]
