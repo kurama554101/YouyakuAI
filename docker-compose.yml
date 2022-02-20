@@ -20,6 +20,7 @@ services:
     build:
       context: ./docker/dashboard
       dockerfile: ./Dockerfile
+      target: local
     container_name: youyaku_ai_dashboard
     volumes:
       - ./src/dashboard:/workspace/dashboard
@@ -27,6 +28,7 @@ services:
       - ./src/log:/workspace/log
       - ./credentials:/workspace/credentials
     environment:
+      DASHBORAD_PORT: ${DASHBORAD_PORT}
       DB_HOST: ${DB_HOST}
       DB_PORT: ${DB_PORT}
       DB_USERNAME: ${DB_USERNAME}
@@ -38,7 +40,7 @@ services:
       GOOGLE_APPLICATION_CREDENTIALS: ${GOOGLE_SERVICE_ACCOUNT_FILE}
     tty: true
     ports:
-      - "8501:8501" # for streamlit or plotly dash
+      - "${DASHBORAD_PORT}:${DASHBORAD_PORT}" # for streamlit or plotly dash
     depends_on:
       - youyaku_ai_db
       - youyaku_ai_api_gateway
@@ -48,6 +50,7 @@ services:
     build:
       context: ./docker/api_gateway
       dockerfile: ./Dockerfile
+      target: local
     container_name: youyaku_ai_api_gateway
     volumes:
       - ./src/api_gateway:/workspace/api_gateway
@@ -88,8 +91,7 @@ services:
     environment:
       SUMMARIZER_INTERNAL_API_LOCAL_PORT: ${SUMMARIZER_INTERNAL_API_LOCAL_PORT}
     ports:
-      - "${SUMMARIZER_INTERNAL_API_LOCAL_PORT}:${SUMMARIZER_INTERNAL_API_LOCAL_\
-        PORT}"
+      - "${SUMMARIZER_INTERNAL_API_LOCAL_PORT}:${SUMMARIZER_INTERNAL_API_LOCAL_PORT}"
     tty: true
     healthcheck:
       test: [ "CMD-SHELL", "python summarizer/health_check.py" ]
@@ -97,8 +99,7 @@ services:
       retries: 10
       timeout: "10s"
       interval: "10s"
-    entrypoint: "uvicorn summarizer.serve:app --reload --host 0.0.0.0 --port
-      ${SUMMARIZER_INTERNAL_API_LOCAL_PORT}"
+    entrypoint: "uvicorn summarizer.serve:app --reload --host 0.0.0.0 --port ${SUMMARIZER_INTERNAL_API_LOCAL_PORT}"
   youyaku_ai_summarizer_processor:
     image: youyaku_ai_summarizer_processor
     build:

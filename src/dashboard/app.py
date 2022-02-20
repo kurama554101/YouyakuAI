@@ -140,7 +140,9 @@ class Dashboard:
         if self.__app is None:
             self.__logger.error("app is none!")
             return
-        self.__app.run_server(host="0.0.0.0", debug=True, port=8501)
+        self.__app.run_server(
+            host="0.0.0.0", debug=True, port=os.environ.get("DASHBORAD_PORT")
+        )
 
 
 if __name__ == "__main__":
