@@ -5,7 +5,12 @@ import os
 import shutil
 import glob
 
+SKIP_GCP_TEST = not ("GOOGLE_APPLICATION_CREDENTIALS" in os.environ)
 
+
+@unittest.skipIf(
+    SKIP_GCP_TEST, "if gcp credential is not set, this test is skipped"
+)
 class TestGCSUtil(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
