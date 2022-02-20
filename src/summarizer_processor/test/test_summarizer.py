@@ -8,7 +8,10 @@ import os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from summarizer_process import SummarizerProcessResult, loop_process
-from internal_api_client import PredictionApiClientFactory
+from internal_api_client import (
+    AbstractPredictionApiClient,
+    PredictionApiClientFactory,
+)
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "db"))
 from db_wrapper import (
@@ -24,6 +27,8 @@ from queue_client import AbstractQueueConsumer, QueueConfig
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "log"))
 from custom_log import AbstractLogger, LoggerFactory
+
+SKIP_GCP_TEST = not ("GOOGLE_APPLICATION_CREDENTIALS" in os.environ)
 
 
 class TestSuammarizer(unittest.TestCase):
@@ -71,8 +76,46 @@ class TestSuammarizer(unittest.TestCase):
         self.db_instance.insert_summarize_job_info(job_infos=[job_info])
         self.queue._add_data(messages=[message])
 
-        # Summarizer API Clientの作成
-        api_type = os.environ.get("SUMMARIZER_INTERNAL_API_TYPE", "local")
+        # テスト用のSummarizer API Clientの作成
+        params = dict(
+            local_host="",
+            local_port="",
+            local_request_name="predict",
+            gcp_project_id="",
+            gcp_location="",
+            gcp_endpoint="",
+        )
+        api_client = PredictionApiClientForTest(params=params)
+
+        # ループ処理の実施
+        process_result = loop_process(
+            api_client=api_client,
+            queue_consumer=self.queue,
+            db_instance=self.db_instance,
+            logger=self.logger,
+        )
+
+        # 検証
+        self.assertEqual(process_result, SummarizerProcessResult.complete)
+
+    @unittest.skipIf(
+        SKIP_GCP_TEST, "if gcp credential is not set, this test is skipped"
+    )
+    def test_summarize_loop_process_with_vertex_prediction(self):
+        print("test_summarize_loop_process_with_vertex_prediction")
+
+        # テスト用のデータを作成
+        job_id = uuid.uuid4()
+        body = "これはテストの本文データです。試しに要約してみてね。"
+        message = {"id": str(job_id), "body": body}
+        body_info = BodyInfo(body=body, created_at=datetime.now())
+        body_info.id = 1
+        job_info = SummarizeJobInfo(job_id=job_id, result_id=None)
+        self.db_instance.insert_body_infos(body_infos=[body_info])
+        self.db_instance.insert_summarize_job_info(job_infos=[job_info])
+        self.queue._add_data(messages=[message])
+
+        # テスト用のSummarizer API Clientの作成
         params = dict(
             local_host="",
             local_port="",
@@ -82,7 +125,7 @@ class TestSuammarizer(unittest.TestCase):
             gcp_endpoint="",
         )
         api_client = PredictionApiClientFactory.get_client(
-            client_type=api_type, params=params
+            client_type="vertexai", params=params
         )
 
         # ループ処理の実施
@@ -215,6 +258,14 @@ class QueueConsumerForTest(AbstractQueueConsumer):
 
     def consume(self) -> list:
         return self.__queue
+
+
+class PredictionApiClientForTest(AbstractPredictionApiClient):
+    def __init__(self, params: dict) -> None:
+        super().__init__(params)
+
+    def post_summarize_body(self, body_texts: List[str]) -> List[str]:
+        return body_texts
 
 
 if __name__ == "__main__":
