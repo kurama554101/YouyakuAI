@@ -52,6 +52,9 @@ build-pipeline:
 run-pipeline:
 	python3 model_pipeline/pipeline.py --run_pipeline --pipeline_type gcp
 
+build-component:
+	python3 build_and_deploy_image.py --docker_type gcr --only_build
+
 build-push-component:
 	python3 build_and_deploy_image.py --docker_type gcr
 	python3 model_pipeline/build_all_components.py --docker_type gcr
