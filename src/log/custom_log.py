@@ -1,5 +1,6 @@
 import datetime
-import watchtower, logging
+import watchtower
+import logging
 from abc import ABCMeta, abstractmethod
 import traceback
 

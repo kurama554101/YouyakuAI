@@ -48,9 +48,7 @@ class TestDBWrapper(unittest.TestCase):
             BodyInfo(body=expected_body_texts[0], created_at=datetime.now()),
             BodyInfo(body=expected_body_texts[1], created_at=datetime.now()),
         ]
-        ids = self.db_instance.insert_body_infos(
-            body_infos=expected_body_infos
-        )
+        _ = self.db_instance.insert_body_infos(body_infos=expected_body_infos)
 
         # BodyInfoの取得を行い、データが正しいかを検証
         actual_body_infos = self.db_instance.fetch_body_infos()
@@ -89,7 +87,7 @@ class TestDBWrapper(unittest.TestCase):
                 label_text=expected_predicted_texts[1],
             ),
         ]
-        result_ids = self.db_instance.insert_summarize_results(
+        _ = self.db_instance.insert_summarize_results(
             result_infos=expected_summarizer_results
         )
 
@@ -154,7 +152,7 @@ class TestDBWrapper(unittest.TestCase):
             expected_job_info,
             SummarizeJobInfo(job_id=uuid.uuid4(), result_id=uuid.uuid4()),
         ]
-        ids = self.db_instance.insert_summarize_job_info(job_infos=job_infos)
+        _ = self.db_instance.insert_summarize_job_info(job_infos=job_infos)
 
         # 指定したjob_idのレコードを取れるかを検証
         actual_job_info = self.db_instance.fetch_summarize_job_info(

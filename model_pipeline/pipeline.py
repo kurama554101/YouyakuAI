@@ -566,7 +566,6 @@ class PipelineWithVertexAI(DefaultPipeline):
                 BigQuerySource,
                 GcsSource,
             )
-            from google.protobuf.field_mask_pb2 import FieldMask
             from google.protobuf.struct_pb2 import Struct
             import copy
 

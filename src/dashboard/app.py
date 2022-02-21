@@ -95,7 +95,7 @@ class Dashboard:
             [State("youyaku_ai_input", "value")],
             prevent_initial_call=True,
         )
-        def execute_summarize(n, value):
+        def start_summarize(n, value):
             if value is None or value == "":
                 return "please set the input text."
 
@@ -118,7 +118,7 @@ class Dashboard:
             [State("youyaku_ai_input", "value")],
             prevent_initial_call=True,
         )
-        def execute_summarize(request_status, value):
+        def get_summarize_result(request_status, value):
             # 要約結果を取得（処理が完了するまで繰り返し取得する）
             job_id = self.__job_queue.get()
             while True:

@@ -23,9 +23,12 @@ queue_initializer = create_queue_initializer_instance(
     config=queue_config, logger=logger
 )
 
-# dbの初期化を実施
-# TODO : ここでテーブル作成すべきかは検討が必要
+
 def create_table_with_retry(db_instance):
+    """
+    dbの初期化を実施
+    TODO : ここでテーブル作成すべきかは検討が必要
+    """
     try:
         db_instance.create_database_if_needed()
         db_instance.create_all_tables_if_needed()
@@ -38,9 +41,12 @@ def create_table_with_retry(db_instance):
 
 create_table_with_retry(db_instance=db_instance)
 
-# Queueの初期化を実施
-# TODO : ここでQueueを初期化すべきかは検討
+
 def initialize_queue_with_retry(initializer):
+    """
+    Queueの初期化を実施
+    TODO : ここでQueueを初期化すべきかは検討
+    """
     try:
         initializer.initialize()
     except Exception as e:

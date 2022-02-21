@@ -1,7 +1,7 @@
 # from kfp.dsl.types import verify_type_compatibility
 from kfp.dsl.types import verify_type_compatibility
 from kfp.dsl.types import String, LocalPath
-from kfp.v2.dsl import component, pipeline, InputPath, OutputPath
+from kfp.v2.dsl import component, pipeline, OutputPath
 from kfp.v2.google.client import AIPlatformClient
 from kfp.v2 import compiler as v2_compiler
 import os

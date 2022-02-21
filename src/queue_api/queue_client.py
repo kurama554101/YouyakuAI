@@ -34,8 +34,9 @@ class AbstractQueueInitializer:
 
 
 class AbstractQueueProducer:
+    __metadata__ = ABCMeta
+
     def __init__(self, config: QueueConfig, logger: AbstractLogger) -> None:
-        __metadata__ = ABCMeta
         self._config = config
         self._logger = logger
 
@@ -49,8 +50,9 @@ class AbstractQueueProducer:
 
 
 class AbstractQueueConsumer:
+    __metadata__ = ABCMeta
+
     def __init__(self, config: QueueConfig, logger: AbstractLogger) -> None:
-        __metadata__ = ABCMeta
         self._config = config
         self._logger = logger
 

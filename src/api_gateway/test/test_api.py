@@ -2,7 +2,6 @@ import unittest
 from fastapi.testclient import TestClient
 from typing import List
 import uuid
-from datetime import datetime
 
 import sys
 import os
@@ -77,11 +76,11 @@ class TestAPI(unittest.TestCase):
                 "id type don't equal UUID type. error detail is {}".format(e)
             )
 
-        ## DBにジョブが登録されていること
+        # DBにジョブが登録されていること
         job_log = db_instance.fetch_summarize_job_log_by_id(job_id=id)
         self.assertEqual(job_log.job_id, id)
 
-        ## Queueにメッセージが送られているかを検証
+        # Queueにメッセージが送られているかを検証
         queue = queue_producer._get_queue()
         self.assertEqual(len(queue), 1)
         self.assertEqual(queue[0]["id"], str(id))
