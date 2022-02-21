@@ -1,0 +1,28 @@
+name: Terraform Lint
+
+on:
+  pull_request:
+    types: ["opened", "edited", "reopened", "synchronize"]
+    branches: [master]
+
+jobs:
+  tflint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{github.event.pull_request.head.ref}}
+      - name: Setup tflint
+        uses: terraform-linters/setup-tflint@v1
+        with:
+          tflint_version: latest
+      - name: Show version
+        run: tflint --version
+      - name: Init TFLint
+        run: |
+          cd infra
+          tflint --init
+      - name: Run TFLint
+        run: |
+          cd infra
+          tflint -f compact
