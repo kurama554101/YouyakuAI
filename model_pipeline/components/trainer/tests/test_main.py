@@ -1,6 +1,5 @@
 import unittest
 
-from pandas.core import base
 from trainer import main, save_model, ComponentArguments, OutputDestinations
 import os
 import yaml

@@ -82,8 +82,8 @@ def get_full_dataset_name(client: bq.Client, dataset_name: str) -> str:
 
 
 def get_table_list(client: bq.Client, dataset_name: str) -> List[dict]:
-    l = client.list_tables(dataset=dataset_name)
+    item_list = client.list_tables(dataset=dataset_name)
     result = []
-    for item in l:
+    for item in item_list:
         result.append(item)
     return result

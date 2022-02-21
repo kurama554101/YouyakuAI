@@ -9,11 +9,7 @@ from queue_client import (
     QueueError,
     _QueueInternalResult,
 )
-from kafka_helper import (
-    exist_kafka_topic,
-    create_kafka_topics_if_needed,
-    get_kafka_topics,
-)
+from kafka_helper import create_kafka_topics_if_needed
 
 import sys
 import os

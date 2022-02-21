@@ -1,12 +1,11 @@
-name: Python Lint
+name: docker build and test
 
 on:
   pull_request:
     types: ["opened", "edited", "reopened", "synchronize"]
     branches: [master]
-
 jobs:
-  flake8_py3:
+  docker_image_build:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -19,9 +18,9 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install flake8
+      - name: Install Python Packages
         run: |
           python -m pip install --upgrade pip
-          pip install flake8
-      - name: Run flake8
-        run: flake8 . --ignore=E402,E501,W503
+          pip install -r requirements.txt
+      - name: Run Docker build
+        run: make build-component

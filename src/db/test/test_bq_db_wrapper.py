@@ -9,7 +9,6 @@ from db_wrapper import (
     BodyInfo,
     DBConfig,
     DBFactory,
-    DBUtil,
     SummarizeJobInfo,
     SummarizeJobLog,
     SummarizeResult,
@@ -192,11 +191,11 @@ class TestBigQueryDBWrapper(unittest.TestCase):
     @classmethod
     def __get_table_list(cls):
         client = bigquery_util.get_bq_client(project_id="youyaku-ai")
-        l = bigquery_util.get_table_list(
+        item_list = bigquery_util.get_table_list(
             client=client, dataset_name="test_youyaku_ai_db"
         )
         table_name_list = []
-        for item in l:
+        for item in item_list:
             table_name_list.append(item.table_id)
         return table_name_list
 

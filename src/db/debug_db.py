@@ -1,12 +1,9 @@
 from dataclasses import dataclass
 from dataclasses import field
 from sqlalchemy import create_engine
-from sqlalchemy import Table, Column, Integer, String, ForeignKey, DateTime
-import sqlalchemy
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import Table, Column, Integer, ForeignKey, DateTime
 from sqlalchemy.dialects.mysql import LONGTEXT
 from sqlalchemy.orm import registry, relationship, sessionmaker
-from sqlalchemy import desc
 import os
 from datetime import datetime
 

@@ -68,7 +68,7 @@ class TestQueueClient(unittest.TestCase):
         message = messages[0]
         self.assertEqual(body_text, message["body"])
         try:
-            id = uuid.UUID(message["id"])
+            _ = uuid.UUID(message["id"])
         except Exception:
             self.fail("id type don't equal UUID type")
 

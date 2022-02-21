@@ -4,25 +4,22 @@ from dataclasses import dataclass
 from dataclasses import field
 from datetime import datetime
 from sqlalchemy import create_engine
-from sqlalchemy import Table, Column, Integer, ForeignKey, DateTime
+from sqlalchemy import Table, Column, Integer, DateTime
 from sqlalchemy import desc
 import sqlalchemy
 from sqlalchemy.dialects.mysql import LONGTEXT
-from sqlalchemy.orm import registry, relationship, sessionmaker
+from sqlalchemy.orm import registry, sessionmaker
 from sqlalchemy_utils import (
     create_database,
     drop_database,
     database_exists,
     UUIDType,
 )
-import sqlalchemy_utils
 import uuid
 from enum import Enum
 
 import sys
 import os
-
-from sqlalchemy_utils.functions.orm import table_name
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../log"))
 from custom_log import AbstractLogger

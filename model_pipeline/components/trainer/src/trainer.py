@@ -12,6 +12,8 @@ from trainer_component import T5FineTunerWithLivedoorDataset
 #
 # COMPONENT ARGUMENTS
 # ------------------------------------------------------------------------------
+
+
 @dataclass
 class ComponentArguments:
     """Argument of the component. Note: Data Generator has no inputs."""

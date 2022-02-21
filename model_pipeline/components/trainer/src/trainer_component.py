@@ -13,9 +13,9 @@ import os
 
 
 class T5FineTuner(pl.LightningModule):
-    def __init__(self, hparams: dict, dataset_params: dict):
-        __metadata__ = ABCMeta
+    __metadata__ = ABCMeta
 
+    def __init__(self, hparams: dict, dataset_params: dict):
         super().__init__()
         self._hparams = hparams
         self._dataset_params = dataset_params

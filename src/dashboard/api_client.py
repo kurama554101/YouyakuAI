@@ -60,7 +60,8 @@ class ApiClient:
             )
 
     def post_correct_summarize_result(self, job_id: str, correct_text: str):
-        url = self.__get_url(request_name="set_correct_summarize_result")
+        # TODO : implement
+        _ = self.__get_url(request_name="set_correct_summarize_result")
 
     def __get_url(self, request_name: str) -> str:
         return "http://{}:{}/{}/".format(

@@ -12,7 +12,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "..", "queue_api"))
 from queue_client import AbstractQueueProducer
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "db"))
-from db_wrapper import AbstractDB, SummarizeJobInfo, SummarizeJobLog
+from db_wrapper import AbstractDB, SummarizeJobLog
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "log"))
 from custom_log import AbstractLogger
