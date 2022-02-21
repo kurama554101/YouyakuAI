@@ -8,9 +8,10 @@ terraform {
 }
 
 provider "google" {
-  project = "youyaku-ai"
-  region  = "us-central1"
-  zone    = "us-central1-c"
+  credentials = file("${path.module}/../credentials/youyaku-ai-service-account.json")
+  project     = "youyaku-ai"
+  region      = "us-central1"
+  zone        = "us-central1-c"
 }
 
 resource "google_cloud_run_service" "default" {
