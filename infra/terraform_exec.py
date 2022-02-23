@@ -2,6 +2,7 @@ from dotenv import load_dotenv
 import argparse
 import os
 import subprocess
+import json
 
 
 def get_args():
@@ -17,9 +18,19 @@ def get_args():
     return arg_parser.parse_args()
 
 
-def get_vars_for_terraform() -> dict:
+def get_vars_for_terraform() -> str:
     # TODO : imp
-    return {}
+    vars = {
+        "DASHBORAD_PORT": os.environ.get("DASHBORAD_PORT"),
+        "GOOGLE_PROJECT_ID": os.environ.get("GOOGLE_PROJECT_ID"),
+        "GOOGLE_SERVICE_ACCOUNT_FILE": os.environ.get(
+            "GOOGLE_SERVICE_ACCOUNT_FILE"
+        ),
+        "GOOGLE_PREDICTION_ENDPOINT": os.environ.get(
+            "GOOGLE_PREDICTION_ENDPOINT"
+        ),
+    }
+    return json.dumps(vars)
 
 
 def main(args):
