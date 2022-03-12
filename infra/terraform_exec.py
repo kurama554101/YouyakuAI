@@ -43,7 +43,9 @@ def main(args):
     vars = get_vars_for_terraform()
 
     if tf_command_type == "apply" or tf_command_type == "plan":
-        tf_command = f"terraform {tf_command_type} -var='env_map={vars}'"
+        tf_command = (
+            f"terraform {tf_command_type} -var='env_parameters={vars}'"
+        )
     elif tf_command_type == "destroy":
         tf_command = "terrform destroy"
     else:
