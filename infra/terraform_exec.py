@@ -29,6 +29,9 @@ def get_vars_for_terraform() -> str:
         "GOOGLE_PREDICTION_ENDPOINT": os.environ.get(
             "GOOGLE_PREDICTION_ENDPOINT"
         ),
+        "GOOGLE_PREDICTION_LOCATION": os.environ.get(
+            "GOOGLE_PREDICTION_LOCATION"
+        ),
     }
     return json.dumps(vars)
 
