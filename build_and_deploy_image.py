@@ -62,12 +62,6 @@ def get_components_parameters(docker_type: DockerType) -> Dict[str, Dict]:
     # dashboard
     component_params = {
         "port": os.environ.get("DASHBORAD_PORT"),
-        "db_host": os.environ.get("DB_HOST"),
-        "db_port": os.environ.get("DB_PORT"),
-        "db_username": os.environ.get("DB_USERNAME"),
-        "db_password": os.environ.get("DB_PASSWORD"),
-        "db_name": os.environ.get("DB_NAME"),
-        "db_type": os.environ.get("DB_TYPE"),
         "api_host": os.environ.get("API_HOST"),
         "api_port": os.environ.get("API_PORT"),
     }
