@@ -19,20 +19,31 @@ def get_args():
 
 
 def get_vars_for_terraform() -> str:
-    # TODO : imp
-    vars = {
-        "DASHBORAD_PORT": os.environ.get("DASHBORAD_PORT"),
-        "GOOGLE_PROJECT_ID": os.environ.get("GOOGLE_PROJECT_ID"),
-        "GOOGLE_SERVICE_ACCOUNT_FILE": os.environ.get(
-            "GOOGLE_SERVICE_ACCOUNT_FILE"
-        ),
-        "GOOGLE_PREDICTION_ENDPOINT": os.environ.get(
-            "GOOGLE_PREDICTION_ENDPOINT"
-        ),
-        "GOOGLE_PREDICTION_LOCATION": os.environ.get(
-            "GOOGLE_PREDICTION_LOCATION"
-        ),
-    }
+    var_keys = [
+        "DASHBORAD_PORT",
+        "API_HOST",
+        "API_PORT",
+        "QUEUE_HOST",
+        "QUEUE_NAME",
+        "QUEUE_PORT",
+        "API_HOST",
+        "API_PORT",
+        "DB_HOST",
+        "DB_PORT",
+        "DB_NAME",
+        "DB_TYPE",
+        "DB_USERNAME",
+        "DB_PASSWORD",
+        "SUMMARIZER_INTERNAL_API_LOCAL_HOST",
+        "SUMMARIZER_INTERNAL_API_LOCAL_PORT",
+        "GOOGLE_PROJECT_ID",
+        "GOOGLE_SERVICE_ACCOUNT_FILE",
+        "GOOGLE_PREDICTION_ENDPOINT",
+        "GOOGLE_PREDICTION_LOCATION",
+    ]
+    vars = {}
+    for var_key in var_keys:
+        vars[var_key] = os.environ.get(var_key)
     return json.dumps(vars)
 
 
