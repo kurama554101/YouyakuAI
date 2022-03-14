@@ -9,6 +9,7 @@ from queue_client import (
     AbstractQueueConsumer,
     AbstractQueueProducer,
     QueueConfig,
+    QueueError,
 )
 
 import sys
@@ -116,8 +117,16 @@ class GcpPubSubQueueConsumer(AbstractQueueConsumer):
                     self._config.optional_param["timeout"] / 1000
                 )
                 subscribe_future.result(timeout=timeout_sec)
-            except TimeoutError:
-                # TODO : raise QueueError
+            except TimeoutError as e:
                 subscribe_future.cancel()
                 subscribe_future.result()
+                raise QueueError(
+                    "consume process is timeout! detail is {}".format(e)
+                )
+            except Exception as e:
+                subscribe_future.cancel()
+                subscribe_future.result()
+                raise QueueError(
+                    "consume process occured error! detail is {}".format(e)
+                )
         return datas
