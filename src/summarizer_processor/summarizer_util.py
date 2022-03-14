@@ -50,5 +50,5 @@ def create_db_instance(config, logger):
 def create_queue_consumer(config, logger):
     queue_type = os.environ.get("QUEUE_TYPE")
     return QueueConsumerCreator.create_consumer(
-        producer_type=queue_type, config=config, logger=logger
+        consumer_type=queue_type, config=config, logger=logger
     )
