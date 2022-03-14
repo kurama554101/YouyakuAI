@@ -9,8 +9,6 @@ from queue_client import (
     AbstractQueueConsumer,
     AbstractQueueProducer,
     QueueConfig,
-    QueueError,
-    _QueueInternalResult,
 )
 
 import sys
@@ -25,8 +23,27 @@ class GcpPubSubQueueInitializer(AbstractQueueInitializer):
         super().__init__(config, logger)
 
     def initialize(self):
-        # TODO : create topic and subscription
-        pass
+        # create topic
+        publisher = pubsub_v1.PublisherClient()
+        topic_path = publisher.topic_path(
+            project=self._config.optional_param["google_project_id"],
+            topic=self._config.optional_param["topic_name"],
+        )
+        with publisher:
+            topic = publisher.create_topic(topic_path)
+            print(topic)
+
+        # create subscription
+        subscriber = pubsub_v1.SubscriberClient()
+        subscription_path = subscriber.subscription_path(
+            self._config.optional_param["google_project_id"],
+            self.__subscription_name,
+        )
+        with subscriber:
+            subscription = subscriber.create_subscription(
+                name=subscription_path, topic=topic_path
+            )
+            print(subscription)
 
 
 class GcpPubSubQueueProducer(AbstractQueueProducer):
@@ -54,12 +71,13 @@ class GcpPubSubQueueProducer(AbstractQueueProducer):
             return callback
 
         publish_futures = []
-        for message in messages:
-            data = seriarize(message)
-            publish_future = publisher.publish(topic_path, data)
-            publish_future.add_done_callback(get_callback(data))
-            publish_futures.append(publish_future)
-        futures.wait(publish_futures, return_when=futures.ALL_COMPLETED)
+        with publisher:
+            for message in messages:
+                data = seriarize(message)
+                publish_future = publisher.publish(topic_path, data)
+                publish_future.add_done_callback(get_callback(data))
+                publish_futures.append(publish_future)
+            futures.wait(publish_futures, return_when=futures.ALL_COMPLETED)
 
 
 class GcpPubSubQueueConsumer(AbstractQueueConsumer):
@@ -96,6 +114,7 @@ class GcpPubSubQueueConsumer(AbstractQueueConsumer):
                 )
                 subscribe_future.result(timeout=timeout_sec)
             except TimeoutError:
+                # TODO : raise QueueError
                 subscribe_future.cancel()
                 subscribe_future.result()
         return datas
