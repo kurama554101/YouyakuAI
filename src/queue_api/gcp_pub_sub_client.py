@@ -40,6 +40,7 @@ class GcpPubSubQueueInitializer(AbstractQueueInitializer):
                 )
             }
         )
+        exist_topic_list = [topic.name for topic in exist_topic_list]
         if topic_path in exist_topic_list:
             self._logger.info(f"{topic_path} is already exist.")
         else:
@@ -53,10 +54,10 @@ class GcpPubSubQueueInitializer(AbstractQueueInitializer):
             self.__subscription_name,
         )
         with subscriber:
-            exists_subscription_path = publisher.list_topic_subscriptions(
+            exists_subscription_paths = publisher.list_topic_subscriptions(
                 request={"topic": topic_path}
             )
-            if subscription_path in exists_subscription_path:
+            if subscription_path in exists_subscription_paths:
                 self._logger.info(
                     f"{subscription_path} subscription is already exist."
                 )
