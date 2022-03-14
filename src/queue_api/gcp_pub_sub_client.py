@@ -33,7 +33,7 @@ class GcpPubSubQueueInitializer(AbstractQueueInitializer):
             topic=self._config.optional_param["topic_name"],
         )
         with publisher:
-            topic = publisher.create_topic(topic_path)
+            topic = publisher.create_topic(name=topic_path)
             self._logger.info(topic)
 
         # create subscription
