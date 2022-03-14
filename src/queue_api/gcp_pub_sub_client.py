@@ -1,3 +1,5 @@
+from google.cloud import pubsub_v1
+
 from queue_client import (
     AbstractQueueInitializer,
     AbstractQueueConsumer,
@@ -30,6 +32,12 @@ class GcpPubSubQueueProducer(AbstractQueueProducer):
 
 
 class GcpPubSubQueueConsumer(AbstractQueueConsumer):
+    def __init__(self, config: QueueConfig, logger: AbstractLogger) -> None:
+        super().__init__(config, logger)
+        self.__subscription_name = "{}-sub".format(
+            self._config.optional_param["topic_name"]
+        )
+
     def consume(self) -> list:
         # TODO : imp
         return super().consume()

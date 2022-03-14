@@ -18,6 +18,7 @@ def create_queue_config():
         port=int(os.environ.get("QUEUE_PORT")),
         optional_param={
             "topic_name": os.environ.get("QUEUE_NAME"),
+            "google_project_id": os.environ.get("GOOGLE_PROJECT_ID"),
             "timeout": 5000,
         },
     )
