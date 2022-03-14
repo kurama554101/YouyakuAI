@@ -27,27 +27,44 @@ class GcpPubSubQueueInitializer(AbstractQueueInitializer):
         )
 
     def initialize(self):
-        # create topic
+        # create topic if needed
         publisher = pubsub_v1.PublisherClient()
         topic_path = publisher.topic_path(
             project=self._config.optional_param["google_project_id"],
             topic=self._config.optional_param["topic_name"],
         )
-        with publisher:
+        exist_topic_list = publisher.list_topics(
+            request={
+                "project": "projects/{}".format(
+                    self._config.optional_param["google_project_id"]
+                )
+            }
+        )
+        if topic_path in exist_topic_list:
+            self._logger.info(f"{topic_path} is already exist.")
+        else:
             topic = publisher.create_topic(name=topic_path)
-            self._logger.info(topic)
+            self._logger.info(f"create the {topic} topic")
 
-        # create subscription
+        # create subscription if needed
         subscriber = pubsub_v1.SubscriberClient()
         subscription_path = subscriber.subscription_path(
             self._config.optional_param["google_project_id"],
             self.__subscription_name,
         )
         with subscriber:
-            subscription = subscriber.create_subscription(
-                name=subscription_path, topic=topic_path
+            exists_subscription_path = publisher.list_topic_subscriptions(
+                request={"topic": topic_path}
             )
-            self._logger.info(subscription)
+            if subscription_path in exists_subscription_path:
+                self._logger.info(
+                    f"{subscription_path} subscription is already exist."
+                )
+            else:
+                subscription = subscriber.create_subscription(
+                    name=subscription_path, topic=topic_path
+                )
+                self._logger.info(f"create the {subscription} subscription")
 
 
 class GcpPubSubQueueProducer(AbstractQueueProducer):
