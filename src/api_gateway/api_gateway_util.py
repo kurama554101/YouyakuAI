@@ -48,12 +48,14 @@ def create_db_instance(config, logger):
 
 
 def create_queue_instance(config, logger):
+    queue_type = os.environ.get("QUEUE_TYPE")
     return QueueProducerCreator.create_producer(
-        producer_type="kafka", config=config, logger=logger
+        producer_type=queue_type, config=config, logger=logger
     )
 
 
 def create_queue_initializer_instance(config, logger):
+    queue_type = os.environ.get("QUEUE_TYPE")
     return QueueInitializerCreator.create_initializer(
-        initializer_type="kafka", config=config, logger=logger
+        initializer_type=queue_type, config=config, logger=logger
     )

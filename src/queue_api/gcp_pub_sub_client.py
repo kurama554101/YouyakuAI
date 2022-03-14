@@ -21,6 +21,9 @@ from custom_log import AbstractLogger
 class GcpPubSubQueueInitializer(AbstractQueueInitializer):
     def __init__(self, config: QueueConfig, logger: AbstractLogger) -> None:
         super().__init__(config, logger)
+        self.__subscription_name = "{}-sub".format(
+            self._config.optional_param["topic_name"]
+        )
 
     def initialize(self):
         # create topic
@@ -31,7 +34,7 @@ class GcpPubSubQueueInitializer(AbstractQueueInitializer):
         )
         with publisher:
             topic = publisher.create_topic(topic_path)
-            print(topic)
+            self._logger.info(topic)
 
         # create subscription
         subscriber = pubsub_v1.SubscriberClient()
@@ -43,7 +46,7 @@ class GcpPubSubQueueInitializer(AbstractQueueInitializer):
             subscription = subscriber.create_subscription(
                 name=subscription_path, topic=topic_path
             )
-            print(subscription)
+            self._logger.info(subscription)
 
 
 class GcpPubSubQueueProducer(AbstractQueueProducer):
@@ -64,9 +67,9 @@ class GcpPubSubQueueProducer(AbstractQueueProducer):
                 publish_future: pubsub_v1.publisher.futures.Future,
             ) -> None:
                 try:
-                    print(publish_future.result(timeout=60))
+                    self._logger.info(publish_future.result(timeout=60))
                 except futures.TimeoutError:
-                    print(f"publishing {data} time out...")
+                    self._logger.error(f"publishing {data} time out...")
 
             return callback
 
