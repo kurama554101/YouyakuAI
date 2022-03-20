@@ -2,6 +2,7 @@ from abc import ABCMeta, abstractmethod
 
 import sys
 import os
+import asyncio
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "log"))
 from custom_log import AbstractLogger
@@ -45,7 +46,7 @@ class AbstractQueueProducer:
         pass
 
     @abstractmethod
-    async def produce_task(self, loop, messages: list):
+    async def produce_task(self, loop: asyncio.BaseEventLoop, messages: list):
         pass
 
 
@@ -61,7 +62,7 @@ class AbstractQueueConsumer:
         pass
 
     @abstractmethod
-    async def consume_task(self, loop) -> list:
+    async def consume_task(self, loop: asyncio.BaseEventLoop) -> list:
         pass
 
 

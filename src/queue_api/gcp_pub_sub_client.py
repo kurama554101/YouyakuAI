@@ -3,6 +3,7 @@ from concurrent import futures
 from typing import Callable
 import json
 from multiprocessing import Manager
+import asyncio
 
 from queue_client import (
     AbstractQueueInitializer,
@@ -70,6 +71,13 @@ class GcpPubSubQueueInitializer(AbstractQueueInitializer):
 
 class GcpPubSubQueueProducer(AbstractQueueProducer):
     def produce(self, messages: list):
+        # debug
+        self._logger.info("start pub/sub publish to queue..")
+        import logging
+
+        logger = logging.getLogger("uvicorn")
+        logger.info("start pub/sub publish")
+
         publisher = pubsub_v1.PublisherClient()
         topic_path = publisher.topic_path(
             project=self._config.optional_param["google_project_id"],
@@ -110,6 +118,12 @@ class GcpPubSubQueueProducer(AbstractQueueProducer):
 
             # debug
             self._logger.info("publish is done")
+
+    async def produce_task(self, loop: asyncio.BaseEventLoop, messages: list):
+        result = await loop.run_in_executor(
+            None, self.produce(messages=messages)
+        )
+        return result
 
 
 class GcpPubSubQueueConsumer(AbstractQueueConsumer):
