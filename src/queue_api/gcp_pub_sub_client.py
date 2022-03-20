@@ -89,17 +89,27 @@ class GcpPubSubQueueProducer(AbstractQueueProducer):
                     self._logger.info(publish_future.result(timeout=60))
                 except futures.TimeoutError:
                     self._logger.error(f"publishing {data} time out...")
+                except Exception as e:
+                    self._logger.error(
+                        f"publish error is occured! datail is {e}"
+                    )
 
             return callback
 
         publish_futures = []
         with publisher:
+            # debug
+            self._logger.info("publish is start")
+
             for message in messages:
                 data = seriarize(message)
                 publish_future = publisher.publish(topic_path, data)
                 publish_future.add_done_callback(get_callback(data))
                 publish_futures.append(publish_future)
             futures.wait(publish_futures, return_when=futures.ALL_COMPLETED)
+
+            # debug
+            self._logger.info("publish is done")
 
 
 class GcpPubSubQueueConsumer(AbstractQueueConsumer):
@@ -124,26 +134,50 @@ class GcpPubSubQueueConsumer(AbstractQueueConsumer):
         datas = manager.list()
 
         def callback(message: pubsub_v1.subscriber.message.Message):
+            # debug
+            print("pub/sub consume callback")
+
             data = deseriarize(message.data)
+
+            # debug
+            print(data)
+
             datas.append(data)
             message.ack()
 
-        subscribe_future = subscriber.subscribe(subscription_path, callback)
+        # debug
+        self._logger.info("start subscribe")
+
         with subscriber:
             try:
+                subscribe_future = subscriber.subscribe(
+                    subscription_path, callback
+                )
                 timeout_sec = int(
                     self._config.optional_param["timeout"] / 1000
                 )
-                subscribe_future.result(timeout=timeout_sec)
+
+                # debug
+                print(f"timeout value is {timeout_sec}")
+
+                subscribe_future.result(timeout=timeout_sec * 10)
             except TimeoutError as e:
                 subscribe_future.cancel()
                 subscribe_future.result()
+
+                # debug
+                self._logger.error(e)
+
                 raise QueueError(
                     "consume process is timeout! detail is {}".format(e)
                 )
             except Exception as e:
                 subscribe_future.cancel()
                 subscribe_future.result()
+
+                # debug
+                self._logger.error(f"consumer error : {e}")
+
                 raise QueueError(
                     "consume process occured error! detail is {}".format(e)
                 )

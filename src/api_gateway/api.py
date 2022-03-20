@@ -17,6 +17,9 @@ from db_wrapper import AbstractDB, SummarizeJobLog
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "log"))
 from custom_log import AbstractLogger
 
+from fastapi.logger import logger
+import logging
+
 
 class ResponseInferenceStatusDetail(str, Enum):
     complete_job = "inference job is completed"
@@ -111,7 +114,7 @@ class SummarizerApi:
         self.__logger = logger
 
     def create_app(self) -> FastAPI:
-        app = FastAPI()
+        app = FastAPI(debug=True)
 
         @app.post("/request_summarize/")
         async def request_summarize(input_data: InputData):
@@ -130,6 +133,13 @@ class SummarizerApi:
         return app
 
     async def __request_summarize(self, input_data: InputData):
+        # debug
+        gunicorn_logger = logging.getLogger("uvicorn")
+        logger.handlers = gunicorn_logger.handlers
+        logger.setLevel(logging.DEBUG)
+        logger.info("test")
+        gunicorn_logger.info("test2")
+
         # TODO : エラーハンドリング
         # 非同期処理のため、loopを内部でとる実装だと、例外となる（nestを許可する設定が必要）
         loop = asyncio.get_running_loop()

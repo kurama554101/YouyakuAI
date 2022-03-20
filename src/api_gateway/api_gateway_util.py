@@ -39,7 +39,7 @@ def create_db_config():
 
 def create_logger(logger_name):
     return LoggerFactory.get_logger(
-        logger_type="print", logger_name=logger_name
+        logger_type="fastapi", logger_name=logger_name
     )
 
 
