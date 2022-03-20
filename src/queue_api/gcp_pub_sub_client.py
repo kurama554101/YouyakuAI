@@ -120,9 +120,7 @@ class GcpPubSubQueueProducer(AbstractQueueProducer):
             self._logger.info("publish is done")
 
     async def produce_task(self, loop: asyncio.BaseEventLoop, messages: list):
-        result = await loop.run_in_executor(
-            None, self.produce(messages=messages)
-        )
+        result = await loop.run_in_executor(None, self.produce, messages)
         return result
 
 
@@ -154,7 +152,7 @@ class GcpPubSubQueueConsumer(AbstractQueueConsumer):
             data = deseriarize(message.data)
 
             # debug
-            print(data)
+            print("data is : {}".format(data))
 
             datas.append(data)
             message.ack()
@@ -172,9 +170,12 @@ class GcpPubSubQueueConsumer(AbstractQueueConsumer):
                 )
 
                 # debug
-                print(f"timeout value is {timeout_sec}")
+                print("wait cosume process...")
 
                 subscribe_future.result(timeout=timeout_sec * 10)
+
+                # debug
+                self._logger.info("consume process is done")
             except TimeoutError as e:
                 subscribe_future.cancel()
                 subscribe_future.result()
@@ -195,4 +196,12 @@ class GcpPubSubQueueConsumer(AbstractQueueConsumer):
                 raise QueueError(
                     "consume process occured error! detail is {}".format(e)
                 )
+
+        # debug
+        self._logger.info("final consume datas is {}".format(datas))
+
         return datas
+
+    async def consume_task(self, loop: asyncio.BaseEventLoop) -> list:
+        # TODO : implement
+        return await super().consume_task(loop)
