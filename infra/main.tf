@@ -179,3 +179,15 @@ resource "google_cloud_run_service" "summarizer_processor" {
     latest_revision = true
   }
 }
+
+resource "google_pubsub_topic" "summarizer_queue" {
+    name = lookup(var.env_parameters, "QUEUE_NAME")
+
+    message_retention_duration = "86600s"
+}
+
+resource "google_pubsub_subscription" "summarizer_queue_subscription" {
+    name = "${lookup(var.env_parameters, "QUEUE_NAME")}-sub"
+    topic = google_pubsub_topic.summarizer_queue.name
+    ack_deadline_seconds = 20
+}
