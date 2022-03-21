@@ -4,6 +4,7 @@ from typing import Callable
 import json
 from multiprocessing import Manager
 import asyncio
+from concurrent.futures import TimeoutError
 
 from queue_client import (
     AbstractQueueInitializer,
@@ -71,13 +72,7 @@ class GcpPubSubQueueInitializer(AbstractQueueInitializer):
 
 class GcpPubSubQueueProducer(AbstractQueueProducer):
     def produce(self, messages: list):
-        # debug
         self._logger.info("start pub/sub publish to queue..")
-        import logging
-
-        logger = logging.getLogger("uvicorn")
-        logger.info("start pub/sub publish")
-
         publisher = pubsub_v1.PublisherClient()
         topic_path = publisher.topic_path(
             project=self._config.optional_param["google_project_id"],
@@ -106,18 +101,13 @@ class GcpPubSubQueueProducer(AbstractQueueProducer):
 
         publish_futures = []
         with publisher:
-            # debug
-            self._logger.info("publish is start")
-
             for message in messages:
                 data = seriarize(message)
                 publish_future = publisher.publish(topic_path, data)
                 publish_future.add_done_callback(get_callback(data))
                 publish_futures.append(publish_future)
             futures.wait(publish_futures, return_when=futures.ALL_COMPLETED)
-
-            # debug
-            self._logger.info("publish is done")
+        self._logger.info("end pub/sub publish process.")
 
     async def produce_task(self, loop: asyncio.BaseEventLoop, messages: list):
         result = await loop.run_in_executor(None, self.produce, messages)
@@ -132,6 +122,7 @@ class GcpPubSubQueueConsumer(AbstractQueueConsumer):
         )
 
     def consume(self) -> list:
+        self._logger.info("start pub/sub consumer process...")
         subscriber = pubsub_v1.SubscriberClient()
         subscription_path = subscriber.subscription_path(
             self._config.optional_param["google_project_id"],
@@ -146,19 +137,9 @@ class GcpPubSubQueueConsumer(AbstractQueueConsumer):
         datas = manager.list()
 
         def callback(message: pubsub_v1.subscriber.message.Message):
-            # debug
-            print("pub/sub consume callback")
-
             data = deseriarize(message.data)
-
-            # debug
-            print("data is : {}".format(data))
-
             datas.append(data)
             message.ack()
-
-        # debug
-        self._logger.info("start subscribe")
 
         with subscriber:
             try:
@@ -168,38 +149,22 @@ class GcpPubSubQueueConsumer(AbstractQueueConsumer):
                 timeout_sec = int(
                     self._config.optional_param["timeout"] / 1000
                 )
-
-                # debug
-                print("wait cosume process...")
-
-                subscribe_future.result(timeout=timeout_sec * 10)
-
-                # debug
-                self._logger.info("consume process is done")
-            except TimeoutError as e:
+                subscribe_future.result(timeout=timeout_sec)
+            except TimeoutError:
                 subscribe_future.cancel()
                 subscribe_future.result()
-
-                # debug
-                self._logger.error(e)
-
                 raise QueueError(
-                    "consume process is timeout! detail is {}".format(e)
+                    "consume process is timeout! next consume process will be started..."
                 )
             except Exception as e:
                 subscribe_future.cancel()
                 subscribe_future.result()
-
-                # debug
-                self._logger.error(f"consumer error : {e}")
-
                 raise QueueError(
                     "consume process occured error! detail is {}".format(e)
                 )
-
-        # debug
-        self._logger.info("final consume datas is {}".format(datas))
-
+        self._logger.info(
+            "end pub/sub consume process. received datas is {}".format(datas)
+        )
         return datas
 
     async def consume_task(self, loop: asyncio.BaseEventLoop) -> list:
