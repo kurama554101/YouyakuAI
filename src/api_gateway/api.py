@@ -133,13 +133,6 @@ class SummarizerApi:
         return app
 
     async def __request_summarize(self, input_data: InputData):
-        # debug
-        gunicorn_logger = logging.getLogger("uvicorn")
-        logger.handlers = gunicorn_logger.handlers
-        logger.setLevel(logging.DEBUG)
-        logger.info("test")
-        gunicorn_logger.info("test2")
-
         # TODO : エラーハンドリング
         # 非同期処理のため、loopを内部でとる実装だと、例外となる（nestを許可する設定が必要）
         loop = asyncio.get_running_loop()

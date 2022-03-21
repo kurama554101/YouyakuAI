@@ -45,9 +45,6 @@ class QueueProducerCreator:
         if producer_type == "kafka":
             return KafkaQueueProducer(config=config, logger=logger)
         elif producer_type == "gcp_pub_sub":
-            # debug
-            logger.info("get gcp pub/sub producer")
-
             return GcpPubSubQueueProducer(config=config, logger=logger)
         else:
             raise NotImplementedError(
@@ -63,9 +60,6 @@ class QueueConsumerCreator:
         if consumer_type == "kafka":
             return KafkaQueueConsumer(config=config, logger=logger)
         elif consumer_type == "gcp_pub_sub":
-            # debug
-            logger.info("get gcp pub/sub consumer")
-
             return GcpPubSubQueueConsumer(config=config, logger=logger)
         else:
             raise NotImplementedError(
