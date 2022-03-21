@@ -6,6 +6,7 @@ from multiprocessing import Manager
 import time
 import argparse
 import os
+from concurrent.futures import TimeoutError
 
 
 def create_sample_messages(count: int = 5) -> List[dict]:
@@ -17,6 +18,7 @@ def create_sample_messages(count: int = 5) -> List[dict]:
 
 
 def publish_message(project_id: str, topic_name: str, messages: List[dict]):
+    print("start to publish message...")
     publisher = pubsub_v1.PublisherClient()
     topic_path = publisher.topic_path(project=project_id, topic=topic_name,)
 
@@ -47,8 +49,11 @@ def publish_message(project_id: str, topic_name: str, messages: List[dict]):
             publish_futures.append(publish_future)
         futures.wait(publish_futures, return_when=futures.ALL_COMPLETED)
 
+    print("end to publish message!")
+
 
 def consume_message(project_id: str, topic_name: str):
+    print("start to consume message...")
     subscriber = pubsub_v1.SubscriberClient()
     subscription_name = "{}-sub".format(topic_name)
     subscription_path = subscriber.subscription_path(
@@ -63,14 +68,7 @@ def consume_message(project_id: str, topic_name: str):
     datas = manager.list()
 
     def callback(message: pubsub_v1.subscriber.message.Message):
-        # debug
-        print("pub/sub consume callback")
-
         data = deseriarize(message.data)
-
-        # debug
-        print("data is : {}".format(data))
-
         datas.append(data)
         message.ack()
 
@@ -80,44 +78,26 @@ def consume_message(project_id: str, topic_name: str):
                 subscription_path, callback
             )
             timeout_sec = 5
-
-            # debug
-            print("wait cosume process...")
-
             subscribe_future.result(timeout=timeout_sec)
-
-            # debug
-            print("consume process is done")
-        except TimeoutError as e:
+        except TimeoutError:
             subscribe_future.cancel()
             subscribe_future.result()
-
-            # debug
-            print(e)
-            print("consume process is timeout! detail is {}".format(e))
-        except Exception as e:
-            subscribe_future.cancel()
-            subscribe_future.result()
-
-            # debug
-            print(f"consumer error : {e}")
-            print("consume process occured error! detail is {}".format(e))
-
-    # debug
-    print("final consume datas is {}".format(datas))
-
+            print("subscription timeout is occured!")
     return datas
 
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--gcp_project_id", default=os.environ.get("GCP_PROJECT_ID")
-    )
+    parser.add_argument("--gcp_project_id", default="youyaku-ai")
     parser.add_argument("--topic_name", default="youyaku_ai_topic")
     parser.add_argument(
         "--gcp_service_account_file",
-        default=os.environ.get("GOOGLE_SERVICE_ACCOUNT_FILE"),
+        default=os.path.join(
+            os.path.dirname(__file__),
+            "..",
+            "credentials",
+            "youyaku-ai-service-account.json",
+        ),
     )
     return parser.parse_args()
 
@@ -127,6 +107,11 @@ def main():
     args = get_args()
     project_id = args.gcp_project_id
     topic_name = args.topic_name
+
+    # 環境変数の設定
+    os.environ[
+        "GOOGLE_APPLICATION_CREDENTIALS"
+    ] = args.gcp_service_account_file
 
     # サンプルの送信メッセージの作成
     messages = create_sample_messages()
