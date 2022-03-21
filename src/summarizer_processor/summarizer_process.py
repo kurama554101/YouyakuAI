@@ -137,6 +137,9 @@ def loop_process(
         body_infos_with_id[id] = body_info
     db_instance.insert_body_infos(body_infos=list(body_infos_with_id.values()))
 
+    # debug
+    logger.info("start summarize. messages is {}".format(messages))
+
     # 推論処理の実施とDBに結果登録
     # 推論処理の実施
     try:

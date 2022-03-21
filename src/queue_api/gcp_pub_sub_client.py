@@ -151,9 +151,10 @@ class GcpPubSubQueueConsumer(AbstractQueueConsumer):
                 )
                 subscribe_future.result(timeout=timeout_sec)
             except TimeoutError:
+                # this process is not error.
                 subscribe_future.cancel()
                 subscribe_future.result()
-                raise QueueError(
+                print(
                     "consume process is timeout! next consume process will be started..."
                 )
             except Exception as e:
