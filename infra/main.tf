@@ -20,7 +20,7 @@ variable "env_parameters" {
 
 resource "google_compute_network" "vpc" {
   name                    = "cloudrun-network"
-  provider                = "google"
+  provider                = google
   auto_create_subnetworks = true
 }
 
