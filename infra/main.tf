@@ -38,6 +38,20 @@ resource "google_service_networking_connection" "private_vpc_connection" {
   reserved_peering_ranges = [google_compute_global_address.private_db_address.name]
 }
 
+resource "google_sql_database_instance" "summarizer_db_mysql" {
+  name = lookup(var.env_parameters, "DB_HOST")
+  depends_on = [google_service_networking_connection.private_vpc_connection]
+  database_version = "MYSQL_8_0"
+  region = "us-central1"
+  settings {
+    tier = "db-f1-micro"
+    ip_configuration {
+      ipv4_enabled    = false
+      private_network = google_compute_network.vpc.id
+    }
+  }
+}
+
 resource "google_cloud_run_service" "dashboard" {
   name     = "cloudrun-srv"
   location = "us-central1"
@@ -113,7 +127,7 @@ resource "google_cloud_run_service" "api_gateway" {
         }
         env {
           name  = "DB_HOST"
-          value = lookup(var.env_parameters, "DB_HOST")
+          value = google_compute_global_address.private_db_address.address
         }
         env {
           name  = "DB_PORT"
@@ -163,7 +177,7 @@ resource "google_cloud_run_service" "summarizer_processor" {
         }
         env {
           name  = "DB_HOST"
-          value = lookup(var.env_parameters, "DB_HOST")
+          value = google_compute_global_address.private_db_address.address
         }
         env {
           name  = "DB_PORT"
@@ -216,27 +230,13 @@ resource "google_cloud_run_service" "summarizer_processor" {
 }
 
 resource "google_pubsub_topic" "summarizer_queue" {
-    name = lookup(var.env_parameters, "QUEUE_NAME")
+  name = lookup(var.env_parameters, "QUEUE_NAME")
 
-    message_retention_duration = "86600s"
+  message_retention_duration = "86600s"
 }
 
 resource "google_pubsub_subscription" "summarizer_queue_subscription" {
-    name = "${lookup(var.env_parameters, "QUEUE_NAME")}-sub"
-    topic = google_pubsub_topic.summarizer_queue.name
-    ack_deadline_seconds = 20
-}
-
-resource "google_sql_database_instance" "summarizer_db_mysql" {
-    name = lookup(var.env_parameters, "DB_HOST")
-    depends_on = [google_service_networking_connection.private_vpc_connection]
-    database_version = "MYSQL_8_0"
-    region = "us-central1"
-    settings {
-        tier = "db-f1-micro"
-        ip_configuration {
-            ipv4_enabled    = false
-            private_network = google_compute_network.vpc.id
-        }
-    }
+  name = "${lookup(var.env_parameters, "QUEUE_NAME")}-sub"
+  topic = google_pubsub_topic.summarizer_queue.name
+  ack_deadline_seconds = 20
 }
