@@ -26,6 +26,7 @@ def get_vars_for_terraform() -> str:
         "QUEUE_HOST",
         "QUEUE_NAME",
         "QUEUE_PORT",
+        "QUEUE_TYPE",
         "API_HOST",
         "API_PORT",
         "DB_HOST",

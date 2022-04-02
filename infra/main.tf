@@ -26,6 +26,9 @@ resource "google_cloud_run_service" "dashboard" {
     spec {
       containers {
         image = "us.gcr.io/youyaku-ai/dashboard"
+        ports {
+            container_port = lookup(var.env_parameters, "DASHBORAD_PORT")
+        }
         env {
           name  = "PORT"
           value = lookup(var.env_parameters, "DASHBORAD_PORT")
@@ -48,6 +51,23 @@ resource "google_cloud_run_service" "dashboard" {
   }
 }
 
+data "google_iam_policy" "dashboard_noauth" {
+  binding {
+    role = "roles/run.invoker"
+    members = [
+      "allUsers",
+    ]
+  }
+}
+
+resource "google_cloud_run_service_iam_policy" "dashboard_noauth" {
+  location    = google_cloud_run_service.dashboard.location
+  project     = google_cloud_run_service.dashboard.project
+  service     = google_cloud_run_service.dashboard.name
+
+  policy_data = data.google_iam_policy.dashboard_noauth .policy_data
+}
+
 resource "google_cloud_run_service" "api_gateway" {
   name     = "cloudrun-srv"
   location = "us-central1"
@@ -56,21 +76,20 @@ resource "google_cloud_run_service" "api_gateway" {
     spec {
       containers {
         image = "us.gcr.io/youyaku-ai/api_gateway"
+        ports {
+            container_port = lookup(var.env_parameters, "API_PORT")
+        }
         env {
           name  = "PORT"
           value = lookup(var.env_parameters, "API_PORT")
-        }
-        env {
-          name  = "QUEUE_HOST"
-          value = lookup(var.env_parameters, "QUEUE_HOST")
         }
         env {
           name  = "QUEUE_NAME"
           value = lookup(var.env_parameters, "QUEUE_NAME")
         }
         env {
-          name  = "QUEUE_PORT"
-          value = lookup(var.env_parameters, "QUEUE_PORT")
+          name  = "QUEUE_TYPE"
+          value = lookup(var.env_parameters, "QUEUE_TYPE")
         }
         env {
           name  = "DB_HOST"
@@ -115,16 +134,12 @@ resource "google_cloud_run_service" "summarizer_processor" {
       containers {
         image = "us.gcr.io/youyaku-ai/summarizer_processor"
         env {
-          name  = "QUEUE_HOST"
-          value = lookup(var.env_parameters, "QUEUE_HOST")
-        }
-        env {
           name  = "QUEUE_NAME"
           value = lookup(var.env_parameters, "QUEUE_NAME")
         }
         env {
-          name  = "QUEUE_PORT"
-          value = lookup(var.env_parameters, "QUEUE_PORT")
+          name  = "QUEUE_TYPE"
+          value = lookup(var.env_parameters, "QUEUE_TYPE")
         }
         env {
           name  = "DB_HOST"
@@ -190,4 +205,13 @@ resource "google_pubsub_subscription" "summarizer_queue_subscription" {
     name = "${lookup(var.env_parameters, "QUEUE_NAME")}-sub"
     topic = google_pubsub_topic.summarizer_queue.name
     ack_deadline_seconds = 20
+}
+
+resource "google_sql_database_instance" "summarizer_db_mysql" {
+    name = lookup(var.env_parameters, "DB_HOST")
+    database_version = "MYSQL_8_0"
+    region = "us-central1"
+    settings {
+        tier = "db-f1-micro"
+    }
 }
