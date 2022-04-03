@@ -58,6 +58,12 @@ resource "google_sql_database_instance" "summarizer_db_mysql" {
   }
 }
 
+resoresource "google_sql_database" "summarizer_db" {
+  name = replace(lookup(var.env_parameters, "DB_NAME"), "_", "-")
+  project = google.project.project_id
+  instance = google_sql_database_instance.summarizer_db_mysql.name
+}
+
 resource "google_service_account" "dashboard_account" {
   account_id = "dashboard-account"
   display_name = "dashboard service account"
