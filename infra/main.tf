@@ -45,10 +45,10 @@ resource "google_sql_user" "summarizer_db_user" {
 }
 
 resource "google_sql_database_instance" "summarizer_db_mysql" {
-  name = replace(lookup(var.env_parameters, "DB_NAME"), "_", "-")
-  depends_on = [google_service_networking_connection.private_vpc_connection]
+  name             = replace(lookup(var.env_parameters, "DB_NAME"), "_", "-")
+  depends_on       = [google_service_networking_connection.private_vpc_connection]
   database_version = "MYSQL_8_0"
-  region = "us-central1"
+  region           = "us-central1"
   settings {
     tier = "db-f1-micro"
     ip_configuration {
@@ -59,13 +59,13 @@ resource "google_sql_database_instance" "summarizer_db_mysql" {
 }
 
 resoresource "google_sql_database" "summarizer_db" {
-  name = replace(lookup(var.env_parameters, "DB_NAME"), "_", "-")
-  project = google.project.project_id
+  name     = replace(lookup(var.env_parameters, "DB_NAME"), "_", "-")
+  project  = google.project.project_id
   instance = google_sql_database_instance.summarizer_db_mysql.name
 }
 
 resource "google_service_account" "dashboard_account" {
-  account_id = "dashboard-account"
+  account_id   = "dashboard-account"
   display_name = "dashboard service account"
 }
 
@@ -78,7 +78,7 @@ resource "google_cloud_run_service" "dashboard" {
       containers {
         image = "us.gcr.io/youyaku-ai/dashboard"
         ports {
-            container_port = lookup(var.env_parameters, "DASHBORAD_PORT")
+          container_port = lookup(var.env_parameters, "DASHBORAD_PORT")
         }
         env {
           name  = "PORT"
@@ -113,9 +113,9 @@ data "google_iam_policy" "dashboard_policy" {
 }
 
 resource "google_cloud_run_service_iam_policy" "dashboard_policy" {
-  location    = google_cloud_run_service.dashboard.location
-  project     = google_cloud_run_service.dashboard.project
-  service     = google_cloud_run_service.dashboard.name
+  location = google_cloud_run_service.dashboard.location
+  project  = google_cloud_run_service.dashboard.project
+  service  = google_cloud_run_service.dashboard.name
 
   policy_data = data.google_iam_policy.dashboard_policy.policy_data
 }
@@ -127,7 +127,7 @@ resource "google_vpc_access_connector" "vpc_connector" {
 }
 
 resource "google_service_account" "api_gateway_account" {
-  account_id = "api-gateway-account"
+  account_id   = "api-gateway-account"
   display_name = "api gateway service account"
 }
 
@@ -140,7 +140,7 @@ resource "google_cloud_run_service" "api_gateway" {
       containers {
         image = "us.gcr.io/youyaku-ai/api_gateway"
         ports {
-            container_port = lookup(var.env_parameters, "API_PORT")
+          container_port = lookup(var.env_parameters, "API_PORT")
         }
         env {
           name  = "PORT"
@@ -211,15 +211,15 @@ data "google_iam_policy" "api_gateway_policy" {
 }
 
 resource "google_cloud_run_service_iam_policy" "api_gateway_policy" {
-  location    = google_cloud_run_service.api_gateway.location
-  project     = google_cloud_run_service.api_gateway.project
-  service     = google_cloud_run_service.api_gateway.name
+  location = google_cloud_run_service.api_gateway.location
+  project  = google_cloud_run_service.api_gateway.project
+  service  = google_cloud_run_service.api_gateway.name
 
   policy_data = data.google_iam_policy.api_gateway_policy.policy_data
 }
 
 resource "google_service_account" "summarizer_processor_account" {
-  account_id = "summarizer-processor-account"
+  account_id   = "summarizer-processor-account"
   display_name = "summarizer processor service account"
 }
 
@@ -310,9 +310,9 @@ data "google_iam_policy" "summarizer_processor_policy" {
 }
 
 resource "google_cloud_run_service_iam_policy" "summarizer_processor_policy" {
-  location    = google_cloud_run_service.summarizer_processor.location
-  project     = google_cloud_run_service.summarizer_processor.project
-  service     = google_cloud_run_service.summarizer_processor.name
+  location = google_cloud_run_service.summarizer_processor.location
+  project  = google_cloud_run_service.summarizer_processor.project
+  service  = google_cloud_run_service.summarizer_processor.name
 
   policy_data = data.google_iam_policy.summarizer_processor_policy.policy_data
 }
@@ -324,7 +324,7 @@ resource "google_pubsub_topic" "summarizer_queue" {
 }
 
 resource "google_pubsub_subscription" "summarizer_queue_subscription" {
-  name = "${lookup(var.env_parameters, "QUEUE_NAME")}-sub"
-  topic = google_pubsub_topic.summarizer_queue.name
+  name                 = "${lookup(var.env_parameters, "QUEUE_NAME")}-sub"
+  topic                = google_pubsub_topic.summarizer_queue.name
   ack_deadline_seconds = 20
 }
