@@ -58,6 +58,11 @@ resource "google_sql_database_instance" "summarizer_db_mysql" {
   }
 }
 
+resource "google_service_account" "dashboard_account" {
+  account_id = "dashboard-account"
+  display_name = "dashboard service account"
+}
+
 resource "google_cloud_run_service" "dashboard" {
   name     = "cloudrun-srv"
   location = "us-central1"
@@ -82,6 +87,7 @@ resource "google_cloud_run_service" "dashboard" {
           value = lookup(var.env_parameters, "API_PORT")
         }
       }
+      service_account_name = google_service_account.dashboard_account.email
     }
   }
 
@@ -91,7 +97,7 @@ resource "google_cloud_run_service" "dashboard" {
   }
 }
 
-data "google_iam_policy" "dashboard_noauth" {
+data "google_iam_policy" "dashboard_policy" {
   binding {
     role = "roles/run.invoker"
     members = [
@@ -100,18 +106,23 @@ data "google_iam_policy" "dashboard_noauth" {
   }
 }
 
-resource "google_cloud_run_service_iam_policy" "dashboard_noauth" {
+resource "google_cloud_run_service_iam_policy" "dashboard_policy" {
   location    = google_cloud_run_service.dashboard.location
   project     = google_cloud_run_service.dashboard.project
   service     = google_cloud_run_service.dashboard.name
 
-  policy_data = data.google_iam_policy.dashboard_noauth .policy_data
+  policy_data = data.google_iam_policy.dashboard_policy.policy_data
 }
 
 resource "google_vpc_access_connector" "vpc_connector" {
   name          = "vpc-connector"
   ip_cidr_range = "10.14.0.0/28"
   network       = google_compute_network.vpc.name
+}
+
+resource "google_service_account" "api_gateway_account" {
+  account_id = "api-gateway-account"
+  display_name = "api gateway service account"
 }
 
 resource "google_cloud_run_service" "api_gateway" {
@@ -162,6 +173,7 @@ resource "google_cloud_run_service" "api_gateway" {
           value = google_sql_user.summarizer_db_user.password
         }
       }
+      service_account_name = google_service_account.api_gateway_account.email
     }
     metadata {
       annotations = {
@@ -175,6 +187,23 @@ resource "google_cloud_run_service" "api_gateway" {
     percent         = 100
     latest_revision = true
   }
+}
+
+data "google_iam_policy" "api_gateway_policy" {
+  binding {
+    role = "roles/run.invoker"
+    members = [
+      google_service_account.dashboard_account.email
+    ]
+  }
+}
+
+resource "google_cloud_run_service_iam_policy" "api_gateway_policy" {
+  location    = google_cloud_run_service.api_gateway.location
+  project     = google_cloud_run_service.api_gateway.project
+  service     = google_cloud_run_service.api_gateway.name
+
+  policy_data = data.google_iam_policy.api_gateway_policy.policy_data
 }
 
 resource "google_cloud_run_service" "summarizer_processor" {
