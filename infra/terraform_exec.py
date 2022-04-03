@@ -54,12 +54,14 @@ def main(args):
     tf_command_type = args.command_type
     vars = get_vars_for_terraform()
 
-    if tf_command_type == "apply" or tf_command_type == "plan":
+    if (
+        tf_command_type == "apply"
+        or tf_command_type == "plan"
+        or tf_command_type == "destroy"
+    ):
         tf_command = (
             f"terraform {tf_command_type} -var='env_parameters={vars}'"
         )
-    elif tf_command_type == "destroy":
-        tf_command = "terrform destroy"
     else:
         raise NotImplementedError(
             f"'{tf_command_type}' command type is not implemented!"
