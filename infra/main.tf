@@ -38,6 +38,12 @@ resource "google_service_networking_connection" "private_vpc_connection" {
   reserved_peering_ranges = [google_compute_global_address.private_db_address.name]
 }
 
+resource "google_sql_user" "summarizer_db_user" {
+  name     = lookup(var.env_parameters, "DB_USERNAME")
+  instance = google_sql_database_instance.summarizer_db_mysql.name
+  password = lookup(var.env_parameters, "DB_PASSWORD")
+}
+
 resource "google_sql_database_instance" "summarizer_db_mysql" {
   name = lookup(var.env_parameters, "DB_HOST")
   depends_on = [google_service_networking_connection.private_vpc_connection]
@@ -102,6 +108,12 @@ resource "google_cloud_run_service_iam_policy" "dashboard_noauth" {
   policy_data = data.google_iam_policy.dashboard_noauth .policy_data
 }
 
+resource "google_vpc_access_connector" "vpc_connector" {
+  name          = "vpc-connector"
+  ip_cidr_range = "10.14.0.0/28"
+  network       = google_compute_network.vpc.name
+}
+
 resource "google_cloud_run_service" "api_gateway" {
   name     = "cloudrun-srv"
   location = "us-central1"
@@ -143,12 +155,18 @@ resource "google_cloud_run_service" "api_gateway" {
         }
         env {
           name  = "DB_USERNAME"
-          value = lookup(var.env_parameters, "DB_USERNAME")
+          value = google_sql_user.summarizer_db_user.name
         }
         env {
           name  = "DB_PASSWORD"
-          value = lookup(var.env_parameters, "DB_PASSWORD")
+          value = google_sql_user.summarizer_db_user.password
         }
+      }
+    }
+    metadata {
+      annotations = {
+        "run.googleapis.com/vpc-access-connector" = google_vpc_access_connector.vpc_connector.name
+        "run.googleapis.com/vpc-access-egress"    = "private-ranges-only"
       }
     }
   }
@@ -193,11 +211,11 @@ resource "google_cloud_run_service" "summarizer_processor" {
         }
         env {
           name  = "DB_USERNAME"
-          value = lookup(var.env_parameters, "DB_USERNAME")
+          value = google_sql_user.summarizer_db_user.name
         }
         env {
           name  = "DB_PASSWORD"
-          value = lookup(var.env_parameters, "DB_PASSWORD")
+          value = google_sql_user.summarizer_db_user.password
         }
         env {
           name  = "SUMMARIZER_INTERNAL_API_LOCAL_HOST"
@@ -219,6 +237,12 @@ resource "google_cloud_run_service" "summarizer_processor" {
           name  = "GOOGLE_PREDICTION_ENDPOINT"
           value = lookup(var.env_parameters, "GOOGLE_PREDICTION_ENDPOINT")
         }
+      }
+    }
+    metadata {
+      annotations = {
+        "run.googleapis.com/vpc-access-connector" = google_vpc_access_connector.vpc_connector.name
+        "run.googleapis.com/vpc-access-egress"    = "private-ranges-only"
       }
     }
   }
