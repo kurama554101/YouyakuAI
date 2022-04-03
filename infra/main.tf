@@ -45,7 +45,7 @@ resource "google_sql_user" "summarizer_db_user" {
 }
 
 resource "google_sql_database_instance" "summarizer_db_mysql" {
-  name = lookup(var.env_parameters, "DB_HOST")
+  name = replace(lookup(var.env_parameters, "DB_NAME"), "_", "-")
   depends_on = [google_service_networking_connection.private_vpc_connection]
   database_version = "MYSQL_8_0"
   region = "us-central1"
@@ -158,7 +158,7 @@ resource "google_cloud_run_service" "api_gateway" {
         }
         env {
           name  = "DB_NAME"
-          value = lookup(var.env_parameters, "DB_NAME")
+          value = google_sql_database_instance.summarizer_db_mysql.name
         }
         env {
           name  = "DB_TYPE"
@@ -243,7 +243,7 @@ resource "google_cloud_run_service" "summarizer_processor" {
         }
         env {
           name  = "DB_NAME"
-          value = lookup(var.env_parameters, "DB_NAME")
+          value = google_sql_database_instance.summarizer_db_mysql.name
         }
         env {
           name  = "DB_TYPE"
