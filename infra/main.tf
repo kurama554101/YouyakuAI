@@ -196,6 +196,12 @@ data "google_iam_policy" "api_gateway_policy" {
       google_service_account.dashboard_account.email
     ]
   }
+  binding {
+    role = "roles/pubsub.editor"
+    members = [
+      google_service_account.api_gateway_account.email
+    ]
+  }
 }
 
 resource "google_cloud_run_service_iam_policy" "api_gateway_policy" {
@@ -204,6 +210,11 @@ resource "google_cloud_run_service_iam_policy" "api_gateway_policy" {
   service     = google_cloud_run_service.api_gateway.name
 
   policy_data = data.google_iam_policy.api_gateway_policy.policy_data
+}
+
+resource "google_service_account" "summarizer_processor_account" {
+  account_id = "summarizer-processor-account"
+  display_name = "summarizer processor service account"
 }
 
 resource "google_cloud_run_service" "summarizer_processor" {
@@ -267,6 +278,7 @@ resource "google_cloud_run_service" "summarizer_processor" {
           value = lookup(var.env_parameters, "GOOGLE_PREDICTION_ENDPOINT")
         }
       }
+      service_account_name = google_service_account.summarizer_processor_account.email
     }
     metadata {
       annotations = {
@@ -280,6 +292,23 @@ resource "google_cloud_run_service" "summarizer_processor" {
     percent         = 100
     latest_revision = true
   }
+}
+
+data "google_iam_policy" "summarizer_processor_policy" {
+  binding {
+    role = "roles/pubsub.subscriber"
+    members = [
+      google_service_account.summarizer_processor_account.email
+    ]
+  }
+}
+
+resource "google_cloud_run_service_iam_policy" "summarizer_processor_policy" {
+  location    = google_cloud_run_service.summarizer_processor.location
+  project     = google_cloud_run_service.summarizer_processor.project
+  service     = google_cloud_run_service.summarizer_processor.name
+
+  policy_data = data.google_iam_policy.summarizer_processor_policy.policy_data
 }
 
 resource "google_pubsub_topic" "summarizer_queue" {
