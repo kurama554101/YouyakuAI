@@ -56,11 +56,13 @@ resource "google_sql_database_instance" "summarizer_db_mysql" {
       private_network = google_compute_network.vpc.id
     }
   }
+
+  deletion_protection = false
 }
 
-resoresource "google_sql_database" "summarizer_db" {
+resource "google_sql_database" "summarizer_db" {
   name     = replace(lookup(var.env_parameters, "DB_NAME"), "_", "-")
-  project  = google.project.project_id
+  project  = lookup(var.env_parameters, "GOOGLE_PROJECT_ID")
   instance = google_sql_database_instance.summarizer_db_mysql.name
 }
 
