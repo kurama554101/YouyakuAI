@@ -26,8 +26,8 @@ RUN pip3 install -r requirements.txt
 ENV BUILD_MODE="production"
 
 # open PORT
-ARG port
-EXPOSE ${port}
+ARG dashboard_port
+EXPOSE ${dashboard_port}
 
 # copy the source files
 COPY src/dashboard dashboard

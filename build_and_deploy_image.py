@@ -73,7 +73,7 @@ def get_components_parameters(docker_type: DockerType) -> Dict[str, Dict]:
 
     # api_gateway
     component_params = {
-        "port": os.environ.get("API_PORT"),
+        "api_port": os.environ.get("API_PORT"),
         "queue_host": os.environ.get("QUEUE_HOST"),
         "queue_name": os.environ.get("QUEUE_NAME"),
         "queue_port": os.environ.get("QUEUE_PORT"),

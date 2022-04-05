@@ -26,8 +26,8 @@ RUN pip3 install -r requirements.txt
 ENV BUILD_MODE="production"
 
 # open PORT
-ARG port
-EXPOSE ${port}
+ARG api_port
+EXPOSE ${api_port}
 
 # copy the source files
 COPY src/api_gateway api_gateway
@@ -59,4 +59,4 @@ ENV DB_TYPE=${db_type}
 RUN cd api_gateway && python3 -m unittest
 
 # set entrypoint
-ENTRYPOINT [ "uvicorn", "api_gateway.main:app", "--reload", "--host", "0.0.0.0", "--port", ${port} ]
+ENTRYPOINT [ "uvicorn", "api_gateway.main:app", "--reload", "--host", "0.0.0.0", "--port", ${api_port} ]

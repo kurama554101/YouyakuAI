@@ -57,11 +57,11 @@ resource "google_sql_database_instance" "summarizer_db_mysql" {
     }
   }
 
-  deletion_protection = false
+  deletion_protection = true
 }
 
 resource "google_sql_database" "summarizer_db" {
-  name     = replace(lookup(var.env_parameters, "DB_NAME"), "_", "-")
+  name     = google_sql_database_instance.summarizer_db_mysql.name
   project  = lookup(var.env_parameters, "GOOGLE_PROJECT_ID")
   instance = google_sql_database_instance.summarizer_db_mysql.name
 }
@@ -83,7 +83,7 @@ resource "google_cloud_run_service" "dashboard" {
           container_port = lookup(var.env_parameters, "DASHBORAD_PORT")
         }
         env {
-          name  = "PORT"
+          name  = "DASHBORAD_PORT"
           value = lookup(var.env_parameters, "DASHBORAD_PORT")
         }
         env {
@@ -145,7 +145,7 @@ resource "google_cloud_run_service" "api_gateway" {
           container_port = lookup(var.env_parameters, "API_PORT")
         }
         env {
-          name  = "PORT"
+          name  = "API_PORT"
           value = lookup(var.env_parameters, "API_PORT")
         }
         env {
