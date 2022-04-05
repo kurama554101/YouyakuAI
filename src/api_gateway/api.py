@@ -17,6 +17,9 @@ from db_wrapper import AbstractDB, SummarizeJobLog
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "log"))
 from custom_log import AbstractLogger
 
+from fastapi.logger import logger
+import logging
+
 
 class ResponseInferenceStatusDetail(str, Enum):
     complete_job = "inference job is completed"
@@ -111,7 +114,7 @@ class SummarizerApi:
         self.__logger = logger
 
     def create_app(self) -> FastAPI:
-        app = FastAPI()
+        app = FastAPI(debug=True)
 
         @app.post("/request_summarize/")
         async def request_summarize(input_data: InputData):

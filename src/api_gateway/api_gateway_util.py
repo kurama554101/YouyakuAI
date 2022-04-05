@@ -18,6 +18,7 @@ def create_queue_config():
         port=int(os.environ.get("QUEUE_PORT")),
         optional_param={
             "topic_name": os.environ.get("QUEUE_NAME"),
+            "google_project_id": os.environ.get("GOOGLE_PROJECT_ID"),
             "timeout": 5000,
         },
     )
@@ -38,7 +39,7 @@ def create_db_config():
 
 def create_logger(logger_name):
     return LoggerFactory.get_logger(
-        logger_type="print", logger_name=logger_name
+        logger_type="fastapi", logger_name=logger_name
     )
 
 
@@ -47,12 +48,14 @@ def create_db_instance(config, logger):
 
 
 def create_queue_instance(config, logger):
+    queue_type = os.environ.get("QUEUE_TYPE")
     return QueueProducerCreator.create_producer(
-        producer_type="kafka", config=config, logger=logger
+        producer_type=queue_type, config=config, logger=logger
     )
 
 
 def create_queue_initializer_instance(config, logger):
+    queue_type = os.environ.get("QUEUE_TYPE")
     return QueueInitializerCreator.create_initializer(
-        initializer_type="kafka", config=config, logger=logger
+        initializer_type=queue_type, config=config, logger=logger
     )

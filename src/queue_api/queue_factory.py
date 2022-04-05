@@ -9,6 +9,11 @@ from kafka_client import (
     KafkaQueueConsumer,
     KafkaQueueProducer,
 )
+from gcp_pub_sub_client import (
+    GcpPubSubQueueInitializer,
+    GcpPubSubQueueProducer,
+    GcpPubSubQueueConsumer,
+)
 
 import sys
 import os
@@ -24,6 +29,8 @@ class QueueInitializerCreator:
     ) -> AbstractQueueInitializer:
         if initializer_type == "kafka":
             return KafkaQueueInitializer(config=config, logger=logger)
+        elif initializer_type == "gcp_pub_sub":
+            return GcpPubSubQueueInitializer(config=config, logger=logger)
         else:
             raise NotImplementedError(
                 "{} type is not implemented!".format(initializer_type)
@@ -37,6 +44,8 @@ class QueueProducerCreator:
     ) -> AbstractQueueProducer:
         if producer_type == "kafka":
             return KafkaQueueProducer(config=config, logger=logger)
+        elif producer_type == "gcp_pub_sub":
+            return GcpPubSubQueueProducer(config=config, logger=logger)
         else:
             raise NotImplementedError(
                 "{} type is not implemented!".format(producer_type)
@@ -50,6 +59,8 @@ class QueueConsumerCreator:
     ) -> AbstractQueueConsumer:
         if consumer_type == "kafka":
             return KafkaQueueConsumer(config=config, logger=logger)
+        elif consumer_type == "gcp_pub_sub":
+            return GcpPubSubQueueConsumer(config=config, logger=logger)
         else:
             raise NotImplementedError(
                 "{} type is not implemented!".format(consumer_type)

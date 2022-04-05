@@ -10,3 +10,4 @@ mysqlclient
 mysql-connector-python
 google-cloud-bigquery
 more_itertools
+google-cloud-pubsub

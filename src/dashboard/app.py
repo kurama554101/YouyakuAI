@@ -9,6 +9,7 @@ from dashboard_util import create_logger
 import os
 from queue import Queue
 from enum import Enum
+import time
 
 
 class RequestStatus(Enum):
@@ -126,6 +127,7 @@ class Dashboard:
                 status_id = result["status_code"]
                 if status_id == RequestStatus.in_progress_job.value:
                     # 処理中の場合のみ、結果取得処理を再度実施
+                    time.sleep(1)
                     continue
 
                 # 解析結果を取得して、表示

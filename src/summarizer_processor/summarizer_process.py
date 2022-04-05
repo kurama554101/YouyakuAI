@@ -9,6 +9,7 @@ from summarizer_util import (
     create_queue_config,
     create_logger,
     create_db_instance,
+    create_queue_consumer,
 )
 from internal_api_client import (
     PredictionApiClientFactory,
@@ -21,7 +22,6 @@ from custom_log import AbstractLogger
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "queue_api"))
 from queue_client import AbstractQueueConsumer, QueueError
-from queue_factory import QueueConsumerCreator
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "db"))
 from db_wrapper import (
@@ -59,9 +59,7 @@ def main():
     # Queueクライアントの取得
     queue_config = create_queue_config()
     logger = create_logger(logger_name="youyaku_ai_summarizer")
-    queue_consumer = QueueConsumerCreator.create_consumer(
-        consumer_type="kafka", config=queue_config, logger=logger
-    )
+    queue_consumer = create_queue_consumer(config=queue_config, logger=logger)
 
     # DBインスタンスの取得
     db_config = create_db_config()

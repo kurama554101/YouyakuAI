@@ -62,12 +62,6 @@ def get_components_parameters(docker_type: DockerType) -> Dict[str, Dict]:
     # dashboard
     component_params = {
         "port": os.environ.get("DASHBORAD_PORT"),
-        "db_host": os.environ.get("DB_HOST"),
-        "db_port": os.environ.get("DB_PORT"),
-        "db_username": os.environ.get("DB_USERNAME"),
-        "db_password": os.environ.get("DB_PASSWORD"),
-        "db_name": os.environ.get("DB_NAME"),
-        "db_type": os.environ.get("DB_TYPE"),
         "api_host": os.environ.get("API_HOST"),
         "api_port": os.environ.get("API_PORT"),
     }
@@ -79,7 +73,7 @@ def get_components_parameters(docker_type: DockerType) -> Dict[str, Dict]:
 
     # api_gateway
     component_params = {
-        "port": os.environ.get("API_PORT"),
+        "api_port": os.environ.get("API_PORT"),
         "queue_host": os.environ.get("QUEUE_HOST"),
         "queue_name": os.environ.get("QUEUE_NAME"),
         "queue_port": os.environ.get("QUEUE_PORT"),

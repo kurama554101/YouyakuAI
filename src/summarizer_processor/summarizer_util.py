@@ -3,7 +3,7 @@ import os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "queue_api"))
 from queue_client import QueueConfig
-from queue_factory import QueueProducerCreator
+from queue_factory import QueueConsumerCreator, QueueProducerCreator
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "db"))
 from db_wrapper import DBConfig, DBFactory
@@ -18,7 +18,8 @@ def create_queue_config():
         port=int(os.environ.get("QUEUE_PORT")),
         optional_param={
             "topic_name": os.environ.get("QUEUE_NAME"),
-            "timeout": 5000,
+            "google_project_id": os.environ.get("GOOGLE_PROJECT_ID"),
+            "timeout": 5000,  # ms
         },
     )
     return config
@@ -46,7 +47,8 @@ def create_db_instance(config, logger):
     return DBFactory.get_db_instance(db_config=config, log_instance=logger)
 
 
-def create_queue_instance(config, logger):
-    return QueueProducerCreator.create_producer(
-        producer_type="kafka", config=config, logger=logger
+def create_queue_consumer(config, logger):
+    queue_type = os.environ.get("QUEUE_TYPE")
+    return QueueConsumerCreator.create_consumer(
+        consumer_type=queue_type, config=config, logger=logger
     )

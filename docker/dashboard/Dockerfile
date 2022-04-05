@@ -26,27 +26,14 @@ RUN pip3 install -r requirements.txt
 ENV BUILD_MODE="production"
 
 # open PORT
-ARG port
-EXPOSE ${port}
+ARG dashboard_port
+EXPOSE ${dashboard_port}
 
 # copy the source files
 COPY src/dashboard dashboard
-COPY src/db db
 COPY src/log log
 
 # set environment values
-ARG db_host
-ENV DB_HOST=${db_host}
-ARG db_port
-ENV DB_PORT=${db_port}
-ARG db_username
-ENV DB_USERNAME=${db_username}
-ARG db_password
-ENV DB_PASSWORD=${db_password}
-ARG db_name
-ENV DB_NAME=${db_name}
-ARG db_type
-ENV DB_TYPE=${db_type}
 ARG api_host
 ENV API_HOST=${api_host}
 ARG api_port

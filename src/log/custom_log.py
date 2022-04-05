@@ -16,6 +16,8 @@ class LoggerFactory:
             return CloudWatchLogger(
                 boto3_session=boto3_session, logger_name=logger_name
             )
+        elif logger_type == "fastapi":
+            return FastAPILogger(logger_name=logger_name)
         else:
             raise NotImplementedError(
                 "{} logger type is not implemented!".format(logger_type)
@@ -92,3 +94,21 @@ class PrintLogger(AbstractLogger):
             + " : "
             + self._log_message(err_detail_txt)
         )
+
+
+class FastAPILogger(AbstractLogger):
+    def __init__(self, logger_name: str) -> None:
+        self._logger_name = logger_name
+        logging.basicConfig(level=logging.INFO)
+        self._logger = logging.getLogger("uvicorn")
+
+    def info(self, message: str):
+        self._logger.info(message)
+
+    def error(self, message: str):
+        self._logger.error(message)
+
+    def error_detail(self, err):
+        err_txt, err_detail_txt = self._create_error_detail_txt(err)
+        self.error(err_txt)
+        self._logger.error(self._log_message(err_detail_txt))

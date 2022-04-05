@@ -29,12 +29,6 @@ services:
       - ./credentials:/workspace/credentials
     environment:
       DASHBORAD_PORT: ${DASHBORAD_PORT}
-      DB_HOST: ${DB_HOST}
-      DB_PORT: ${DB_PORT}
-      DB_USERNAME: ${DB_USERNAME}
-      DB_PASSWORD: ${DB_PASSWORD}
-      DB_NAME: ${DB_NAME}
-      DB_TYPE: ${DB_TYPE}
       API_HOST: ${API_HOST}
       API_PORT: ${API_PORT}
       GOOGLE_APPLICATION_CREDENTIALS: ${GOOGLE_SERVICE_ACCOUNT_FILE}
@@ -65,12 +59,14 @@ services:
       QUEUE_HOST: ${QUEUE_HOST}
       QUEUE_PORT: ${QUEUE_PORT}
       QUEUE_NAME: ${QUEUE_NAME}
+      QUEUE_TYPE: ${QUEUE_TYPE}
       DB_HOST: ${DB_HOST}
       DB_PORT: ${DB_PORT}
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: ${DB_NAME}
       DB_TYPE: ${DB_TYPE}
+      GOOGLE_PROJECT_ID: ${GOOGLE_PROJECT_ID}
       GOOGLE_APPLICATION_CREDENTIALS: ${GOOGLE_SERVICE_ACCOUNT_FILE}
     depends_on:
       - youyaku_ai_db
@@ -118,6 +114,7 @@ services:
       QUEUE_HOST: ${QUEUE_HOST}
       QUEUE_PORT: ${QUEUE_PORT}
       QUEUE_NAME: ${QUEUE_NAME}
+      QUEUE_TYPE: ${QUEUE_TYPE}
       DB_HOST: ${DB_HOST}
       DB_PORT: ${DB_PORT}
       DB_USERNAME: ${DB_USERNAME}
